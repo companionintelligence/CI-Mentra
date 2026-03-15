@@ -61,6 +61,10 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
   const responseId = `resp_${uuidv4().replace(/-/g, '').substring(0, 24)}`;
 
   if (body.stream) {
+    const writeDone = (): void => {
+      res.write('data: [DONE]\n\n');
+    };
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -119,7 +123,7 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
         type: 'response.completed',
         response: { id: responseId, status: 'completed', model: turn.model },
       })}\n\n`);
-      res.write('data: [DONE]\n\n');
+      writeDone();
 
       if (turn.conversation_id) {
         await appendMessage(turn.conversation_id, 'assistant', fullContent, provider.name);
@@ -130,7 +134,7 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
         type: 'error',
         error: { message: 'Upstream provider error', type: 'api_error' },
       })}\n\n`);
-      res.write('data: [DONE]\n\n');
+      writeDone();
     } finally {
       res.end();
     }

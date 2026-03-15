@@ -106,8 +106,12 @@ export class MentraBridge extends AppServer {
       try {
         session.dashboard.content.write(truncateForGlass(content, 120));
       } catch (err) {
-        logger.debug({ err }, 'Unable to update dashboard content');
+        logger.debug({ err, sessionId, dashboardContent: content }, 'Dashboard update failed');
       }
+    };
+
+    const interruptActiveAudio = (): void => {
+      session.audio.stopAudio();
     };
 
     const renderLayout = (): void => {
@@ -170,7 +174,7 @@ export class MentraBridge extends AppServer {
       logger.info({ durationMs: segment.durationMs }, 'Processing utterance');
 
       try {
-        session.audio.stopAudio();
+        interruptActiveAudio();
         statusText = 'Transcribing...';
         lastAssistantResponse = '';
         refreshUi(true);
@@ -267,7 +271,7 @@ export class MentraBridge extends AppServer {
     });
 
     session.events.onButtonPress((press) => {
-      session.audio.stopAudio();
+      interruptActiveAudio();
       statusText = 'Listening...';
       refreshUi(true);
       logger.debug({ press }, 'Button press');
@@ -277,11 +281,10 @@ export class MentraBridge extends AppServer {
     session.events.on('disconnected', () => {
       logger.info({ sessionId }, 'Session disconnected, cleaning up');
       statusText = 'Disconnected';
-      updateDashboard(statusText);
       if (hasDisplay(session.capabilities)) {
         session.layouts.clearView();
       }
-      session.audio.stopAudio();
+      interruptActiveAudio();
       vadBuffer.destroy();
     });
   }
