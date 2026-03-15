@@ -1,4 +1,5 @@
 import { AppServer, AppSession } from '@mentra/sdk';
+import type { Capabilities } from '@mentra/sdk';
 import { config } from '../config';
 import { VadBuffer, UtteranceSegment } from '../voice/vad-buffer';
 import { transcribeAudio } from '../voice/stt';
@@ -8,6 +9,66 @@ import { v4 as uuidv4 } from 'uuid';
 import pino from 'pino';
 
 const logger = pino({ name: 'mentra-bridge' });
+const GLASS_TEXT_LIMIT = 280;
+const TRANSCRIPTION_UI_DEBOUNCE_MS = 250;
+
+export type BridgeLayout =
+  | { type: 'dashboard'; leftText: string; rightText: string }
+  | { type: 'text'; text: string }
+  | { type: 'reference'; title: string; text: string }
+  | { type: 'double'; topText: string; bottomText: string };
+
+export function truncateForGlass(text: string, maxLength = GLASS_TEXT_LIMIT): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+export function selectBridgeLayout(
+  transcript?: string,
+  response?: string,
+  status = 'Listening...'
+): BridgeLayout {
+  const trimmedTranscript = transcript?.trim();
+  const trimmedResponse = response?.trim();
+
+  if (trimmedTranscript && trimmedResponse) {
+    return {
+      type: 'double',
+      topText: truncateForGlass(`You: ${trimmedTranscript}`),
+      bottomText: truncateForGlass(`Assistant: ${trimmedResponse}`),
+    };
+  }
+
+  if (trimmedResponse) {
+    return {
+      type: 'reference',
+      title: 'Assistant',
+      text: truncateForGlass(trimmedResponse),
+    };
+  }
+
+  if (trimmedTranscript) {
+    return {
+      type: 'text',
+      text: truncateForGlass(`You: ${trimmedTranscript}`),
+    };
+  }
+
+  return {
+    type: 'dashboard',
+    leftText: 'Mentra Bridge',
+    rightText: truncateForGlass(status, 80),
+  };
+}
+
+function hasDisplay(capabilities: Capabilities | null): boolean {
+  return capabilities?.hasDisplay ?? true;
+}
+
+function hasMicrophone(capabilities: Capabilities | null): boolean {
+  return capabilities?.hasMicrophone ?? true;
+}
 
 /**
  * MentraBridge is the MentraOS AppServer that:
@@ -30,30 +91,104 @@ export class MentraBridge extends AppServer {
   protected async onSession(session: AppSession, sessionId: string, userId: string): Promise<void> {
     logger.info({ sessionId, userId }, 'New Mentra session started');
 
-    await session.layouts.showTextWall('Mentra Bridge connected. Listening...');
-
     const conversationId = uuidv4();
+    let lastTranscript = '';
+    let lastAssistantResponse = '';
+    let statusText = 'Listening...';
+    let lastTranscriptionUiUpdateAt = 0;
 
     const vadBuffer = new VadBuffer({
       maxDurationMs: 10000,
       sampleRate: 16000,
     });
 
+    const updateDashboard = (content: string): void => {
+      try {
+        session.dashboard.content.write(truncateForGlass(content, 120));
+      } catch (err) {
+        logger.debug({ err }, 'Unable to update dashboard content');
+      }
+    };
+
+    const renderLayout = (): void => {
+      if (!hasDisplay(session.capabilities)) return;
+
+      const layout = selectBridgeLayout(lastTranscript, lastAssistantResponse, statusText);
+      switch (layout.type) {
+        case 'double':
+          session.layouts.showDoubleTextWall(layout.topText, layout.bottomText);
+          break;
+        case 'reference':
+          session.layouts.showReferenceCard(layout.title, layout.text);
+          break;
+        case 'text':
+          session.layouts.showTextWall(layout.text);
+          break;
+        case 'dashboard':
+          session.layouts.showDashboardCard(layout.leftText, layout.rightText);
+          break;
+      }
+    };
+
+    const refreshUi = (force = false): void => {
+      const now = Date.now();
+      if (!force && now - lastTranscriptionUiUpdateAt < TRANSCRIPTION_UI_DEBOUNCE_MS) {
+        return;
+      }
+      lastTranscriptionUiUpdateAt = now;
+      renderLayout();
+      updateDashboard(statusText);
+    };
+
+    const updateCapabilitiesState = (capabilities: Capabilities | null): void => {
+      session.capabilities = capabilities;
+      logger.info({ sessionId, userId, capabilities }, 'Mentra capabilities updated');
+
+      if (capabilities && !capabilities.hasMicrophone) {
+        statusText = 'Microphone unavailable';
+        lastTranscript = '';
+        lastAssistantResponse = '';
+      } else if (statusText === 'Microphone unavailable') {
+        statusText = 'Listening...';
+      }
+
+      refreshUi(true);
+    };
+
+    updateCapabilitiesState(session.capabilities);
+    session.events.onCapabilitiesUpdate(({ capabilities }) => {
+      updateCapabilitiesState(capabilities);
+    });
+
     // When VAD produces an utterance, run the full voice pipeline
     vadBuffer.on('utterance', async (segment: UtteranceSegment) => {
+      if (!hasMicrophone(session.capabilities)) {
+        logger.warn({ sessionId }, 'Skipping utterance because microphone capability is unavailable');
+        return;
+      }
+
       logger.info({ durationMs: segment.durationMs }, 'Processing utterance');
 
       try {
+        session.audio.stopAudio();
+        statusText = 'Transcribing...';
+        lastAssistantResponse = '';
+        refreshUi(true);
+
         // Step 1: STT
         const transcript = await transcribeAudio(segment.wavBuffer);
         logger.info({ transcript }, 'Transcribed utterance');
 
         if (!transcript.trim()) {
           logger.debug('Empty transcript, skipping');
+          statusText = 'Listening...';
+          refreshUi(true);
           return;
         }
 
-        await session.layouts.showTextWall(`You: ${transcript}`);
+        lastTranscript = transcript;
+        statusText = 'Thinking...';
+        refreshUi(true);
 
         // Step 2: LLM
         const turn = normalizeChatCompletionToCanonical(
@@ -75,13 +210,20 @@ export class MentraBridge extends AppServer {
         const responseText = result.choices[0]?.message?.content || '';
         logger.info({ responseText }, 'LLM response');
 
-        await session.layouts.showTextWall(`Assistant: ${responseText}`);
+        lastAssistantResponse = responseText;
+        statusText = 'Speaking...';
+        refreshUi(true);
 
         // Step 3: TTS — use Mentra native speak for low latency
         await session.audio.speak(responseText);
+        statusText = 'Listening...';
+        refreshUi(true);
 
       } catch (err) {
         logger.error({ err }, 'Voice pipeline error');
+        statusText = 'Voice pipeline error';
+        lastAssistantResponse = 'Sorry, I encountered an error. Please try again.';
+        refreshUi(true);
         try {
           await session.audio.speak('Sorry, I encountered an error. Please try again.');
         } catch (ttsErr) {
@@ -92,32 +234,54 @@ export class MentraBridge extends AppServer {
 
     // Subscribe to VAD events
     session.events.onVoiceActivity((vad) => {
+      if (!hasMicrophone(session.capabilities)) return;
       const isSpeaking = vad.status === true || vad.status === 'true';
       vadBuffer.onVad(isSpeaking);
     });
 
     // Subscribe to audio chunks
     session.events.onAudioChunk((chunk) => {
+      if (!hasMicrophone(session.capabilities)) return;
       if (chunk.arrayBuffer) {
         const buffer = Buffer.from(chunk.arrayBuffer);
         vadBuffer.addChunk(buffer, chunk.sampleRate ? Number(chunk.sampleRate) : undefined);
       }
     });
 
-    // Subscribe to MentraOS transcription as fallback / fast-path
+    // Subscribe to MentraOS transcription as fallback / fast-path for low-latency UI updates
     session.events.onTranscription((data) => {
+      if (!hasMicrophone(session.capabilities) || !data.text?.trim()) return;
+
+      lastTranscript = data.text;
+      if (data.isFinal) {
+        statusText = 'Thinking...';
+        refreshUi(true);
+      } else {
+        statusText = 'Listening...';
+        refreshUi();
+      }
+
       if (data.isFinal) {
         logger.debug({ text: data.text }, 'MentraOS transcription (fast-path)');
       }
     });
 
     session.events.onButtonPress((press) => {
+      session.audio.stopAudio();
+      statusText = 'Listening...';
+      refreshUi(true);
       logger.debug({ press }, 'Button press');
     });
 
     // Cleanup on disconnect
     session.events.on('disconnected', () => {
       logger.info({ sessionId }, 'Session disconnected, cleaning up');
+      statusText = 'Disconnected';
+      updateDashboard(statusText);
+      if (hasDisplay(session.capabilities)) {
+        session.layouts.clearView();
+      }
+      session.audio.stopAudio();
       vadBuffer.destroy();
     });
   }
