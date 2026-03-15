@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mentra
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/store/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  mentra-bridge:
+    build: .
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    ports:
+      - "7010:7010"
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+volumes:
+  postgres_data:
