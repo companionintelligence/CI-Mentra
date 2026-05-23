@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const runtimeMode = process.env.MENTRA_RUNTIME_MODE === 'bluetooth-local' ? 'bluetooth-local' : 'cloud';
-const bluetoothTarget = process.env.MENTRA_BLUETOOTH_TARGET === 'even-realities' ? 'even-realities' : 'mentra-live';
+const bluetoothTarget = process.env.MENTRA_BLUETOOTH_TARGET || 'mentra-live';
 
 export const config = {
   mentra: {
