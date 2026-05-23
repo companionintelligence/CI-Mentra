@@ -61,6 +61,10 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
   const responseId = `resp_${uuidv4().replace(/-/g, '').substring(0, 24)}`;
 
   if (body.stream) {
+    const writeDone = (): void => {
+      res.write('data: [DONE]\n\n');
+    };
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -69,6 +73,24 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
     res.write(`data: ${JSON.stringify({
       type: 'response.created',
       response: { id: responseId, status: 'in_progress', model: turn.model },
+    })}\n\n`);
+    res.write(`data: ${JSON.stringify({
+      type: 'response.output_item.added',
+      response_id: responseId,
+      output_index: 0,
+      item: {
+        id: `${responseId}_item_0`,
+        type: 'message',
+        role: 'assistant',
+        status: 'in_progress',
+      },
+    })}\n\n`);
+    res.write(`data: ${JSON.stringify({
+      type: 'response.content_part.added',
+      response_id: responseId,
+      output_index: 0,
+      content_index: 0,
+      part: { type: 'output_text', text: '' },
     })}\n\n`);
 
     try {
@@ -79,9 +101,29 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
       });
 
       res.write(`data: ${JSON.stringify({
+        type: 'response.content_part.done',
+        response_id: responseId,
+        output_index: 0,
+        content_index: 0,
+        part: { type: 'output_text', text: fullContent },
+      })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        type: 'response.output_item.done',
+        response_id: responseId,
+        output_index: 0,
+        item: {
+          id: `${responseId}_item_0`,
+          type: 'message',
+          role: 'assistant',
+          status: 'completed',
+          content: [{ type: 'output_text', text: fullContent }],
+        },
+      })}\n\n`);
+      res.write(`data: ${JSON.stringify({
         type: 'response.completed',
         response: { id: responseId, status: 'completed', model: turn.model },
       })}\n\n`);
+      writeDone();
 
       if (turn.conversation_id) {
         await appendMessage(turn.conversation_id, 'assistant', fullContent, provider.name);
@@ -92,6 +134,7 @@ responsesRouter.post('/', async (req: Request, res: Response) => {
         type: 'error',
         error: { message: 'Upstream provider error', type: 'api_error' },
       })}\n\n`);
+      writeDone();
     } finally {
       res.end();
     }
