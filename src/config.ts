@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+const runtimeMode = process.env.MENTRA_RUNTIME_MODE === 'bluetooth-local' ? 'bluetooth-local' : 'cloud';
+const bluetoothTarget = process.env.MENTRA_BLUETOOTH_TARGET === 'even-realities' ? 'even-realities' : 'mentra-live';
+
 export const config = {
   mentra: {
     packageName: process.env.MENTRA_PACKAGE_NAME || 'com.companionintelligence.mentra-bridge',
@@ -29,5 +32,14 @@ export const config = {
   rateLimit: {
     rpm: parseInt(process.env.RATE_LIMIT_RPM || '60'),
     tpm: parseInt(process.env.RATE_LIMIT_TPM || '100000'),
+  },
+  runtime: {
+    mode: runtimeMode,
+    bluetooth: {
+      sdkPackage: '@mentra/bluetooth-sdk',
+      sdkVersion: process.env.MENTRA_BLUETOOTH_SDK_VERSION || '0.1.6',
+      packagePath: process.env.MENTRA_BLUETOOTH_SDK_PACKAGE_PATH || '',
+      target: bluetoothTarget,
+    },
   },
 };
