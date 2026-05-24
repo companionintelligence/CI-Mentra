@@ -3,11 +3,21 @@ import express from 'express';
 import { config } from './config';
 import { facadeRouter } from './facade';
 import { MentraBridge } from './bridge/mentra-bridge';
+import { createLocalBluetoothRuntimeInfo } from './bluetooth/local-sdk';
 import pino from 'pino';
 
 const logger = pino({ name: 'main' });
 
 async function main(): Promise<void> {
+  const localBluetoothRuntimeInfo =
+    config.runtime.mode === 'bluetooth-local'
+      ? createLocalBluetoothRuntimeInfo(
+          config.runtime.bluetooth.sdkVersion,
+          config.runtime.bluetooth.target,
+          config.runtime.bluetooth.packagePath
+        )
+      : null;
+
   // Start the OpenAI-compatible façade server
   const app = express();
   app.use(express.json({ limit: '10mb' }));
@@ -29,16 +39,27 @@ async function main(): Promise<void> {
 
   // Health check
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'mentra-bridge', version: '1.0.0' });
+    res.json({
+      status: 'ok',
+      service: 'mentra-bridge',
+      version: '1.0.0',
+      runtimeMode: config.runtime.mode,
+      bluetooth: localBluetoothRuntimeInfo,
+    });
   });
 
   const facadeServer = app.listen(config.facade.port, () => {
     logger.info({ port: config.facade.port }, 'OpenAI-compatible facade listening');
   });
 
-  // Start the Mentra Bridge (MentraOS AppServer)
-  // Only start if API key is configured
-  if (config.mentra.apiKey) {
+  // Start Mentra cloud bridge unless runtime is configured for local Bluetooth SDK usage
+  if (localBluetoothRuntimeInfo) {
+    logger.info(localBluetoothRuntimeInfo, 'Bluetooth-local runtime selected');
+    logger.info(
+      { flow: localBluetoothRuntimeInfo.ftue.firstTimeFlow },
+      'FTUE flow loaded for selected headset target'
+    );
+  } else if (config.mentra.apiKey) {
     const bridge = new MentraBridge();
     await bridge.start();
     logger.info({ port: config.mentra.port }, 'Mentra Bridge (MentraOS AppServer) started');
