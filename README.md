@@ -33,13 +33,17 @@ Recommended flow:
 ## Tailscale + Ollama + STT + TTS quick setup
 
 Use this flow when Mentra bridge is running in one environment and your model/audio stack is exposed over your tailnet.
+This setup is local-first: Ollama for LLMs, and a local OpenAI-compatible speech endpoint for STT/TTS.
+No external LLM/speech API keys are required.
 
 ### 1) Prerequisites
 
-- Tailscale installed and authenticated on both machines:
+- Tailscale installed and authenticated on all AI hosts:
   - machine running CI-Mentra
-  - machine hosting Ollama (and optionally your OpenAI-compatible STT/TTS endpoint)
+  - machine hosting Ollama
+  - machine hosting local OpenAI-compatible STT/TTS endpoint
 - Ollama running on your tailnet host (`ollama serve`)
+- Local speech/STT/TTS endpoint running on your tailnet (OpenAI-compatible `/v1/audio/transcriptions` + `/v1/audio/speech`)
 - Required local services for CI-Mentra (`postgres`, `redis`)
 
 ### 2) Generate a ready-to-use environment file
@@ -50,19 +54,20 @@ scripts/setup-tailscale-ollama-stt-tts.sh \
   --facade-api-key <FACADE_API_KEY> \
   --tailscale-cloud-api-url https://<ci-server>.<tailnet>.ts.net \
   --ollama-base-url http://<ollama-host>.<tailnet>.ts.net:11434 \
-  --tts-provider mentra
+  --local-speech-base-url http://<speech-host>.<tailnet>.ts.net:8000
 ```
 
-This writes `.env.tailscale`. Then apply it:
+This writes `.env.tailscale` and pins:
+
+- `DEFAULT_PROVIDER=ollama`
+- `TTS_PROVIDER=mentra`
+- `OPENAI_BASE_URL` / `VLLM_BASE_URL` to your local speech endpoint
+- `OPENAI_API_KEY=local-only` (placeholder for local endpoint auth compatibility)
+
+Then apply it:
 
 ```bash
 cp .env.tailscale .env
-```
-
-If you use ElevenLabs for TTS, pass:
-
-```bash
---tts-provider elevenlabs --elevenlabs-api-key <ELEVENLABS_API_KEY>
 ```
 
 ### 3) Start dependencies and run CI-Mentra
@@ -73,7 +78,7 @@ npm ci
 npm run dev
 ```
 
-### 4) Smoke-test Ollama, STT, and TTS
+### 4) Smoke-test local Ollama, STT, and TTS
 
 Check Ollama model availability from the CI-Mentra host:
 

@@ -8,10 +8,7 @@ MENTRA_API_KEY=""
 FACADE_API_KEY=""
 TAILSCALE_CLOUD_API_URL=""
 OLLAMA_BASE_URL=""
-OPENAI_API_KEY=""
-TTS_PROVIDER="mentra"
-ELEVENLABS_API_KEY=""
-ELEVENLABS_DEFAULT_VOICE_ID=""
+LOCAL_SPEECH_BASE_URL=""
 
 usage() {
   cat <<USAGE
@@ -21,17 +18,15 @@ Usage:
     --facade-api-key <key> \
     --tailscale-cloud-api-url <url> \
     --ollama-base-url <url> \
-    [--openai-api-key <key>] \
-    [--tts-provider mentra|elevenlabs] \
-    [--elevenlabs-api-key <key>] \
-    [--elevenlabs-default-voice-id <id>]
+    --local-speech-base-url <url>
 
 Example:
   scripts/setup-tailscale-ollama-stt-tts.sh \
     --mentra-api-key mentra_xxx \
     --facade-api-key facade_xxx \
     --tailscale-cloud-api-url https://ci-server.your-tailnet.ts.net \
-    --ollama-base-url http://ollama.your-tailnet.ts.net:11434
+    --ollama-base-url http://ollama.your-tailnet.ts.net:11434 \
+    --local-speech-base-url http://speech.your-tailnet.ts.net:8000
 USAGE
 }
 
@@ -53,20 +48,8 @@ while [[ $# -gt 0 ]]; do
       OLLAMA_BASE_URL="${2:-}"
       shift 2
       ;;
-    --openai-api-key)
-      OPENAI_API_KEY="${2:-}"
-      shift 2
-      ;;
-    --tts-provider)
-      TTS_PROVIDER="${2:-}"
-      shift 2
-      ;;
-    --elevenlabs-api-key)
-      ELEVENLABS_API_KEY="${2:-}"
-      shift 2
-      ;;
-    --elevenlabs-default-voice-id)
-      ELEVENLABS_DEFAULT_VOICE_ID="${2:-}"
+    --local-speech-base-url)
+      LOCAL_SPEECH_BASE_URL="${2:-}"
       shift 2
       ;;
     --help|-h)
@@ -86,20 +69,11 @@ missing_args=()
 [[ -z "$FACADE_API_KEY" ]] && missing_args+=("--facade-api-key")
 [[ -z "$TAILSCALE_CLOUD_API_URL" ]] && missing_args+=("--tailscale-cloud-api-url")
 [[ -z "$OLLAMA_BASE_URL" ]] && missing_args+=("--ollama-base-url")
+[[ -z "$LOCAL_SPEECH_BASE_URL" ]] && missing_args+=("--local-speech-base-url")
 
 if [[ ${#missing_args[@]} -gt 0 ]]; then
   echo "Error: missing required arguments: ${missing_args[*]}" >&2
   usage
-  exit 1
-fi
-
-if [[ "$TTS_PROVIDER" != "mentra" && "$TTS_PROVIDER" != "elevenlabs" ]]; then
-  echo "Error: --tts-provider must be either 'mentra' or 'elevenlabs'." >&2
-  exit 1
-fi
-
-if [[ "$TTS_PROVIDER" == "elevenlabs" && -z "$ELEVENLABS_API_KEY" ]]; then
-  echo "Error: --elevenlabs-api-key is required when --tts-provider elevenlabs." >&2
   exit 1
 fi
 
@@ -115,21 +89,28 @@ set_env() {
   local value="$2"
   local escaped
   escaped=$(printf '%s' "$value" | sed -e 's/[\\&]/\\&/g')
-  if sed --version >/dev/null 2>&1; then
-    sed -i "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+  if grep -q "^${key}=" "$ENV_FILE"; then
+    if sed --version >/dev/null 2>&1; then
+      sed -i "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+    else
+      sed -i '' "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+    fi
   else
-    sed -i '' "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+    echo "${key}=${value}" >> "$ENV_FILE"
   fi
 }
 
 set_env "MENTRA_API_KEY" "$MENTRA_API_KEY"
 set_env "FACADE_API_KEY" "$FACADE_API_KEY"
 set_env "MENTRA_CLOUD_API_URL" "$TAILSCALE_CLOUD_API_URL"
+set_env "DEFAULT_PROVIDER" "ollama"
 set_env "OLLAMA_BASE_URL" "$OLLAMA_BASE_URL"
-set_env "OPENAI_API_KEY" "$OPENAI_API_KEY"
-set_env "TTS_PROVIDER" "$TTS_PROVIDER"
-set_env "ELEVENLABS_API_KEY" "$ELEVENLABS_API_KEY"
-set_env "ELEVENLABS_DEFAULT_VOICE_ID" "$ELEVENLABS_DEFAULT_VOICE_ID"
+set_env "OPENAI_BASE_URL" "$LOCAL_SPEECH_BASE_URL"
+set_env "OPENAI_API_KEY" "local-only"
+set_env "VLLM_BASE_URL" "$LOCAL_SPEECH_BASE_URL"
+set_env "TTS_PROVIDER" "mentra"
+set_env "ELEVENLABS_API_KEY" ""
+set_env "ELEVENLABS_DEFAULT_VOICE_ID" ""
 
 echo "Wrote ${ENV_FILE}"
 echo "Next steps:"
