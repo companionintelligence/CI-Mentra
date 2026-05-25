@@ -81,8 +81,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$MENTRA_API_KEY" || -z "$FACADE_API_KEY" || -z "$TAILSCALE_CLOUD_API_URL" || -z "$OLLAMA_BASE_URL" ]]; then
-  echo "Error: required arguments are missing." >&2
+missing_args=()
+[[ -z "$MENTRA_API_KEY" ]] && missing_args+=("--mentra-api-key")
+[[ -z "$FACADE_API_KEY" ]] && missing_args+=("--facade-api-key")
+[[ -z "$TAILSCALE_CLOUD_API_URL" ]] && missing_args+=("--tailscale-cloud-api-url")
+[[ -z "$OLLAMA_BASE_URL" ]] && missing_args+=("--ollama-base-url")
+
+if [[ ${#missing_args[@]} -gt 0 ]]; then
+  echo "Error: missing required arguments: ${missing_args[*]}" >&2
   usage
   exit 1
 fi
@@ -97,6 +103,11 @@ if [[ "$TTS_PROVIDER" == "elevenlabs" && -z "$ELEVENLABS_API_KEY" ]]; then
   exit 1
 fi
 
+if [[ ! -f "${ROOT_DIR}/.env.example" ]]; then
+  echo "Error: .env.example not found in repository root (${ROOT_DIR})" >&2
+  exit 1
+fi
+
 cp "${ROOT_DIR}/.env.example" "$ENV_FILE"
 
 set_env() {
@@ -104,7 +115,11 @@ set_env() {
   local value="$2"
   local escaped
   escaped=$(printf '%s' "$value" | sed -e 's/[\\&]/\\&/g')
-  sed -i "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+  if sed --version >/dev/null 2>&1; then
+    sed -i "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+  else
+    sed -i '' "s#^${key}=.*#${key}=${escaped}#" "$ENV_FILE"
+  fi
 }
 
 set_env "MENTRA_API_KEY" "$MENTRA_API_KEY"
