@@ -3,6 +3,7 @@ import { Provider } from './types';
 import { OllamaProvider } from './ollama';
 import { VllmProvider } from './vllm';
 import { OpenAIProvider } from './openai';
+import { HermesProvider } from './hermes';
 import { config } from '../config';
 import pino from 'pino';
 
@@ -12,6 +13,7 @@ const providers = new Map<ProviderName, Provider>([
   ['ollama', new OllamaProvider()],
   ['vllm', new VllmProvider()],
   ['openai', new OpenAIProvider()],
+  ['hermes', new HermesProvider()],
 ]);
 
 export function getProvider(name?: ProviderName): Provider {
@@ -35,6 +37,9 @@ export function resolveProvider(turn: CanonicalTurn): Provider {
   }
   if (model.startsWith('vllm:')) {
     return getProvider('vllm');
+  }
+  if (model.startsWith('hermes:') || model.startsWith('openclaw:')) {
+    return getProvider('hermes');
   }
   return getProvider(config.providers.default as ProviderName);
 }

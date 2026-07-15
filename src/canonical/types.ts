@@ -1,6 +1,6 @@
 export type StreamingMode = 'none' | 'sse';
 export type OutputMode = 'text' | 'json' | 'tool_calls' | 'multimodal';
-export type ProviderName = 'ollama' | 'vllm' | 'openai';
+export type ProviderName = 'ollama' | 'vllm' | 'openai' | 'hermes';
 
 export interface ContentPart {
   type: 'text' | 'image_url' | 'audio';

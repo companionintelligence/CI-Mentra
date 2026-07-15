@@ -194,10 +194,16 @@ export class MentraBridge extends AppServer {
         statusText = 'Thinking...';
         refreshUi(true);
 
-        // Step 2: LLM
+        // Step 2: LLM — model comes from the standardized inference config.
+        // When the default provider is the Hub hermes/openclaw backend, prefer
+        // its model; otherwise use the (Hub) Ollama default.
+        const defaultModel =
+          config.providers.default === 'hermes' && config.providers.hermes.defaultModel
+            ? config.providers.hermes.defaultModel
+            : config.providers.ollama.defaultModel;
         const turn = normalizeChatCompletionToCanonical(
           {
-            model: 'llama3.2',
+            model: defaultModel,
             messages: [
               { role: 'system', content: 'You are a helpful voice assistant for Mentra smart glasses. Keep responses concise (1-3 sentences).' },
               { role: 'user', content: transcript },

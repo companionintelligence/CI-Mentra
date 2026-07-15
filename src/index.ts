@@ -1,14 +1,26 @@
 import 'dotenv/config';
 import express from 'express';
-import { config } from './config';
-import { facadeRouter } from './facade';
-import { MentraBridge } from './bridge/mentra-bridge';
-import { createLocalBluetoothRuntimeInfo } from './bluetooth/local-sdk';
 import pino from 'pino';
+import { applyHubInferenceBootstrap } from './hub/inference-bootstrap';
 
 const logger = pino({ name: 'main' });
 
 async function main(): Promise<void> {
+  // Adopt CI-Hub inference credentials (Ollama + hermes/openclaw backend)
+  // BEFORE `config` is evaluated, so discovered endpoints flow into config.
+  // Fail-open: a Hub that is unreachable never blocks startup.
+  const hubBootstrap = await applyHubInferenceBootstrap();
+  if (hubBootstrap.attempted) {
+    logger.info(hubBootstrap, 'CI-Hub inference bootstrap result');
+  }
+
+  // Deferred imports: these modules read `config`, which must resolve AFTER the
+  // Hub bootstrap has populated the environment.
+  const { config } = await import('./config');
+  const { facadeRouter } = await import('./facade');
+  const { MentraBridge } = await import('./bridge/mentra-bridge');
+  const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk');
+
   const localBluetoothRuntimeInfo =
     config.runtime.mode === 'bluetooth-local'
       ? createLocalBluetoothRuntimeInfo(
@@ -44,12 +56,29 @@ async function main(): Promise<void> {
       service: 'mentra-bridge',
       version: '1.0.0',
       runtimeMode: config.runtime.mode,
+      auth: {
+        mode: config.auth.portal.enabled ? 'portal-oidc' : 'facade-key',
+        portalIssuer: config.auth.portal.enabled ? config.auth.portal.issuer : undefined,
+      },
+      inference: {
+        defaultProvider: config.providers.default,
+        ollamaBaseUrl: config.providers.ollama.baseUrl,
+        hermesBackendConfigured: Boolean(config.providers.hermes.baseUrl),
+        hubBootstrap: {
+          attempted: hubBootstrap.attempted,
+          applied: hubBootstrap.applied,
+          slug: hubBootstrap.slug,
+        },
+      },
       bluetooth: localBluetoothRuntimeInfo,
     });
   });
 
   const facadeServer = app.listen(config.facade.port, () => {
-    logger.info({ port: config.facade.port }, 'OpenAI-compatible facade listening');
+    logger.info(
+      { port: config.facade.port, authMode: config.auth.portal.enabled ? 'portal-oidc' : 'facade-key' },
+      'OpenAI-compatible facade listening'
+    );
   });
 
   // Start Mentra cloud bridge unless runtime is configured for local Bluetooth SDK usage
