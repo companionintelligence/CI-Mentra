@@ -88,7 +88,9 @@ describe('config', () => {
     const { config } = await import('../config');
 
     expect(config.auth.portal.enabled).toBe(false);
-    expect(config.auth.portal.issuer).toBe('https://hub.ci.computer/api/auth');
+    // iss is the bare origin (no /api/auth suffix) — see live discovery doc.
+    expect(config.auth.portal.issuer).toBe('https://hub.companionintelligence.com');
+    expect(config.auth.portal.jwksUri).toBe('https://hub.companionintelligence.com/api/auth/jwks');
     expect(config.auth.portal.audience).toEqual(['ci-mentra', 'ci-server', 'ci-hub']);
     expect(config.hub.appSlug).toBe('hermes-agent');
     expect(config.hub.url).toBe('http://ci-os-hub:3000');
@@ -98,5 +100,26 @@ describe('config', () => {
     process.env.PORTAL_OIDC_ENABLED = 'true';
     const { config } = await import('../config');
     expect(config.auth.portal.enabled).toBe(true);
+  });
+
+  it('defaults the interactive OIDC login (CI-Import-Tools style) config', async () => {
+    for (const key of ['MENTRA_OIDC_ENABLED', 'MENTRA_OIDC_ISSUER', 'MENTRA_OIDC_CLIENT_ID', 'MENTRA_OIDC_SCOPES']) {
+      delete process.env[key];
+    }
+    const { config } = await import('../config');
+
+    expect(config.auth.oidc.enabled).toBe(false);
+    // Discovery base URL includes /api/auth (discovery appends /.well-known/...).
+    expect(config.auth.oidc.issuer).toBe('https://hub.companionintelligence.com/api/auth');
+    expect(config.auth.oidc.clientId).toBe('ci-mentra');
+    expect(config.auth.oidc.scopes).toBe('openid profile email offline_access');
+  });
+
+  it('supports overriding the OIDC login client id (e.g. reuse ci-import-tools)', async () => {
+    process.env.MENTRA_OIDC_ENABLED = 'true';
+    process.env.MENTRA_OIDC_CLIENT_ID = 'ci-import-tools';
+    const { config } = await import('../config');
+    expect(config.auth.oidc.enabled).toBe(true);
+    expect(config.auth.oidc.clientId).toBe('ci-import-tools');
   });
 });

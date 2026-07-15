@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 import { isPortalAuthEnabled, verifyPortalToken } from '../auth/portal-token';
+import { getSession, SESSION_COOKIE } from '../auth/sessions';
 import pino from 'pino';
 
 const logger = pino({ name: 'auth' });
 
-export type AuthMethod = 'portal-oidc' | 'facade-key';
+export type AuthMethod = 'oidc-session' | 'portal-oidc' | 'facade-key';
 
 export interface AuthenticatedRequest extends Request {
   tenantId: string;
@@ -44,9 +45,23 @@ function matchesFacadeKey(token: string): boolean {
  *     Portal auth is disabled, matching the original behavior).
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // 1. Interactive OIDC login session (signed cookie set by /api/auth/callback).
+  const sid = (req.signedCookies as Record<string, string> | undefined)?.[SESSION_COOKIE];
+  const session = getSession(sid);
+  if (session) {
+    const authReq = req as AuthenticatedRequest;
+    authReq.tenantId = session.user.email || session.user.sub;
+    authReq.userId = session.user.sub;
+    authReq.email = session.user.email;
+    authReq.authMethod = 'oidc-session';
+    next();
+    return;
+  }
+
+  // 2. Bearer token: CI-Portal OIDC JWT or the static facade key.
   const token = extractBearer(req);
   if (!token) {
-    unauthorized(res, 'Missing or invalid Authorization header. Expected: Bearer <token>');
+    unauthorized(res, 'Missing or invalid credentials. Provide a Bearer token or sign in at /api/auth/login.');
     return;
   }
 

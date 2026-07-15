@@ -15,11 +15,16 @@ jest.mock('../../auth/portal-token', () => ({
 
 import { requireAuth, AuthenticatedRequest } from '../../middleware/auth';
 import { verifyPortalToken } from '../../auth/portal-token';
+import { createSession, clearAllSessions } from '../../auth/sessions';
 
 const mockedVerify = verifyPortalToken as jest.MockedFunction<typeof verifyPortalToken>;
 
-function makeReqRes(authHeader?: string) {
-  const req = { headers: authHeader ? { authorization: authHeader } : {}, ip: '127.0.0.1' } as unknown as Request;
+function makeReqRes(authHeader?: string, signedCookies?: Record<string, string>) {
+  const req = {
+    headers: authHeader ? { authorization: authHeader } : {},
+    signedCookies: signedCookies || {},
+    ip: '127.0.0.1',
+  } as unknown as Request;
   const state = { statusCode: 200, body: undefined as unknown };
   const res = {
     status(code: number) {
@@ -39,6 +44,7 @@ beforeEach(() => {
   mockConfig.auth.portal.enabled = false;
   mockConfig.facade.apiKey = '';
   mockedVerify.mockReset();
+  clearAllSessions();
 });
 
 describe('requireAuth', () => {
@@ -47,6 +53,22 @@ describe('requireAuth', () => {
     await requireAuth(req, res, next);
     expect(state.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('accepts a valid OIDC login session cookie (no bearer needed)', async () => {
+    const session = createSession(
+      { sub: 'user-9', email: 'liam@ci.computer', name: 'Liam' },
+      { access_token: 'a', id_token: 'i' },
+      60_000
+    );
+    const { req, res, next } = makeReqRes(undefined, { mentra_session: session.id });
+    await requireAuth(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    const authReq = req as AuthenticatedRequest;
+    expect(authReq.authMethod).toBe('oidc-session');
+    expect(authReq.tenantId).toBe('liam@ci.computer');
+    expect(authReq.userId).toBe('user-9');
   });
 
   describe('Portal disabled (legacy facade key)', () => {

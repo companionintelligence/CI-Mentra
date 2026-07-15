@@ -1,5 +1,7 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import pino from 'pino';
 import { applyHubInferenceBootstrap } from './hub/inference-bootstrap';
 
@@ -18,6 +20,7 @@ async function main(): Promise<void> {
   // Hub bootstrap has populated the environment.
   const { config } = await import('./config');
   const { facadeRouter } = await import('./facade');
+  const { authRouter } = await import('./auth/routes');
   const { MentraBridge } = await import('./bridge/mentra-bridge');
   const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk');
 
@@ -34,6 +37,11 @@ async function main(): Promise<void> {
   const app = express();
   app.use(express.json({ limit: '10mb' }));
 
+  // Signs the OIDC tx + session cookies. A configured secret keeps sessions
+  // valid across restarts; otherwise a random per-boot secret is used.
+  const cookieSecret = config.auth.oidc.sessionSecret || crypto.randomBytes(32).toString('hex');
+  app.use(cookieParser(cookieSecret));
+
   // CORS for webview origins
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -45,6 +53,9 @@ async function main(): Promise<void> {
     }
     next();
   });
+
+  // CI-Portal OIDC login (Authorization Code + PKCE): /api/auth/{config,login,callback,logout,me}
+  app.use('/api/auth', authRouter);
 
   // OpenAI-compatible API routes
   app.use('/v1', facadeRouter);
@@ -59,6 +70,9 @@ async function main(): Promise<void> {
       auth: {
         mode: config.auth.portal.enabled ? 'portal-oidc' : 'facade-key',
         portalIssuer: config.auth.portal.enabled ? config.auth.portal.issuer : undefined,
+        oidcLogin: config.auth.oidc.enabled
+          ? { enabled: true, provider: config.auth.oidc.providerName, clientId: config.auth.oidc.clientId, loginUrl: '/api/auth/login' }
+          : { enabled: false },
       },
       inference: {
         defaultProvider: config.providers.default,

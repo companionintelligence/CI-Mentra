@@ -76,22 +76,47 @@ export const config = {
   },
   /**
    * Authentication for the OpenAI-compatible facade.
-   * - `portal`: OIDC login via CI-Portal (the platform IdP, better-auth). When
-   *   enabled, the facade validates Portal-issued JWTs as a resource server
+   * - `portal`: resource-server validation of a *presented* CI-Portal JWT
    *   (JWKS + iss/aud/exp checks), mirroring CI-Server's PortalTokenService.
+   * - `oidc`: the interactive Authorization Code + PKCE login flow (browser
+   *   sign-in via CI-Portal), mirroring CI-Import-Tools. Establishes a
+   *   server-side session; the session cookie also authorizes the facade.
    * - The static `facade.apiKey` remains a fallback for machine/dev clients.
    */
   auth: {
     portal: {
       enabled: isTruthy(process.env.PORTAL_OIDC_ENABLED),
-      issuer: process.env.PORTAL_OIDC_ISSUER || 'https://hub.ci.computer/api/auth',
-      jwksUri: normalizeBaseUrl(process.env.PORTAL_OIDC_JWKS_URI, 'https://hub.ci.computer/api/auth/jwks', 'https'),
+      // Expected `iss` claim. CI-Portal (better-auth) serves discovery under
+      // `/api/auth` but signs the `iss` as the BARE ORIGIN — do not add /api/auth.
+      issuer: process.env.PORTAL_OIDC_ISSUER || 'https://hub.companionintelligence.com',
+      jwksUri: normalizeBaseUrl(process.env.PORTAL_OIDC_JWKS_URI, 'https://hub.companionintelligence.com/api/auth/jwks', 'https'),
       // aud on a Portal token equals the client_id it was minted for. Accept a
       // comma-separated allowlist of first-party clients (empty = skip aud check).
-      audience: (process.env.PORTAL_OIDC_AUDIENCE || 'ci-mentra,ci-server,ci-hub')
+      audience: (process.env.PORTAL_OIDC_AUDIENCE || 'ci-mentra,ci-import-tools,ci-server,ci-hub')
         .split(',')
         .map((value) => value.trim())
         .filter(Boolean),
+    },
+    oidc: {
+      enabled: isTruthy(process.env.MENTRA_OIDC_ENABLED),
+      // Discovery base URL (includes /api/auth); discovery appends
+      // /.well-known/openid-configuration and reads all endpoints from it.
+      issuer: normalizeBaseUrl(process.env.MENTRA_OIDC_ISSUER, 'https://hub.companionintelligence.com/api/auth', 'https'),
+      // Public PKCE client id registered in CI-Portal. `ci-import-tools` is a
+      // registered client that allows localhost redirects (usable for testing
+      // until a dedicated `ci-mentra` client is registered).
+      clientId: process.env.MENTRA_OIDC_CLIENT_ID || 'ci-mentra',
+      clientSecret: process.env.MENTRA_OIDC_CLIENT_SECRET || '',
+      scopes: process.env.MENTRA_OIDC_SCOPES || 'openid profile email offline_access',
+      // Optional explicit redirect URI; otherwise derived from the request as
+      // `${proto}://${host}/api/auth/callback`.
+      redirectUri: process.env.MENTRA_OIDC_REDIRECT_URI || '',
+      providerName: process.env.MENTRA_OIDC_PROVIDER_NAME || 'Companion Intelligence',
+      postLogoutRedirectUri: process.env.MENTRA_OIDC_POST_LOGOUT_REDIRECT_URI || '',
+      // Signs the tx + session cookies. Empty = a random per-boot secret
+      // (sessions won't survive a restart); set it in production.
+      sessionSecret: process.env.MENTRA_SESSION_SECRET || '',
+      sessionTtlMs: parseInt(process.env.MENTRA_SESSION_TTL_MS || String(30 * 24 * 60 * 60 * 1000)),
     },
   },
   providers: {
