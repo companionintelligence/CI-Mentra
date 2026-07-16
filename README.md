@@ -76,6 +76,109 @@ set `HUB_INFERENCE_BOOTSTRAP=true` to auto-discover credentials at startup from
 Route a request to it by setting `DEFAULT_PROVIDER=hermes`, or per-request with a
 `hermes:` / `openclaw:` model prefix (e.g. `hermes:gemma4:latest`).
 
+### 4. Companion Memory (CI-Server)
+
+This is what makes the glasses answer *as your companion* rather than as a generic
+chatbot: CI-Server is the memory brain, and CI-Mentra reads and writes it on every
+utterance — the same integration the Hermes / OpenClaw plugins use.
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `MENTRA_MEMORY_ENABLED` | Enable Companion Memory | `false` |
+| `CI_SERVER_URL` | CI-Server origin | `http://ci-server:8642` |
+| `CI_SERVER_MEMORY_KEY` | Memory-scoped CI-Server API key (falls back to `CI_SERVER_TOKEN`) | _(empty)_ |
+| `MENTRA_MEMORY_PLATFORM` | Tags memories/turns written by this device | `mentra` |
+| `MENTRA_MEMORY_RECALL_MAX` | Recall hits pulled into the prompt per utterance | `6` |
+
+> **The memory API is _not_ Portal-OIDC authenticated.** CI-Server's `/api/memory/*`
+> routes are `ApiKeyGuard`-only and expect an **`x-api-key`** header carrying a
+> **memory-scoped CI-Server API key** — *not* a CI-Portal bearer token. Issue one
+> from CI-Server exactly as you would for the Hermes/OpenClaw `CI_SERVER_TOKEN`.
+> Portal OIDC (§1) authenticates the *wearer* to CI-Mentra; this key authenticates
+> *CI-Mentra* to CI-Server. They are separate credentials.
+
+The loop, per session and per utterance:
+
+| Call | When | Purpose |
+|------|------|---------|
+| `GET /api/memory/context` | Once per session (cached 10 min) | L0 profile block prepended to the system prompt |
+| `POST /api/memory/recall` | Every utterance | Hybrid pgvector RAG; returns a prompt block of relevant memories |
+| `POST /api/memory/turn` | After every exchange | Persists the turn (idempotent server-side) |
+| `POST /api/memory/write` | On "remember this…" | Stores a durable memory fragment |
+
+`MENTRA_MEMORY_ENABLED=true` **and** a non-empty key are both required — either
+missing and memory stays off. **Every call is fail-open:** if CI-Server is
+unreachable, slow, or erroring, the assistant still answers, just without memory
+(context/recall degrade to empty blocks, writes are dropped with a log line). The
+glasses never go silent because the memory brain is down. `GET /health` reports
+`memory.enabled` so you can tell "off" from "misconfigured".
+
+### 5. Assistant persona + short-term memory
+
+Long-term memory (§4) is CI-Server's job; **short-term memory is local** — a rolling
+in-process window of the last N exchanges per session, which is what keeps follow-ups
+("what about tomorrow?") coherent.
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `MENTRA_PERSONA` | System prompt for the companion | _(warm, concise glasses assistant; 1–3 sentence replies)_ |
+| `MENTRA_LANGUAGE` | Assistant language tag | `en-US` |
+| `MENTRA_MAX_HISTORY_TURNS` | Rolling in-session window, in exchanges | `8` |
+
+The composed system prompt is `persona` + profile context + recall block. Keep the
+persona's replies short: they are spoken aloud through the glasses.
+
+## Companion UI
+
+A static app served at the **site root** (`/`) of the façade port — one build that
+works from a phone and from an R1 ring. It talks only to the Companion BFF below, so
+it holds no credentials: the `mentra_session` cookie from §1B is the whole story. If
+you are not signed in it shows a login gate pointing at `/api/auth/login`.
+
+**Ring key map.** The R1 has no pointer, so the UI is a focus-ring app: everything is
+reachable by arrow keys and confirmed with one button.
+
+| Input | Action |
+|-------|--------|
+| `ArrowUp` / `ArrowDown` | Move focus between controls |
+| `ArrowLeft` / `ArrowRight` | Move focus within a row / scrub a list |
+| `Enter` or `Space` (tap) | Activate the focused control |
+| `Space` (hold) | Push-to-talk — records while held, sends on release |
+| `Escape` | Dismiss / back out to the previous view |
+
+Touch works the same way on a phone; no key map required.
+
+### Companion BFF API
+
+Mounted at `/api/companion`, JSON in / JSON out, guarded by the same credentials as
+the façade (OIDC session cookie, Portal bearer, or `FACADE_API_KEY`).
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/companion/status` | Auth state, user, memory/provider/model, `loginUrl` — **200 even when signed out**, so the UI can render the login gate |
+| `POST /api/companion/ask` | The main loop: recall → answer → persist the turn |
+| `POST /api/companion/memory/search` | Query long-term memory directly (`/api/memory/recall` passthrough) |
+| `POST /api/companion/memory/remember` | Save a durable memory fragment |
+| `GET /api/companion/profile` | The L0 profile/context block for this wearer |
+| `GET /api/companion/history` | The rolling short-term history for a `sessionId` |
+
+`GET /health` reports `companionUi.path` and `companionUi.devAnonymous`.
+
+### Dev-only: anonymous access
+
+`MENTRA_DEV_ALLOW_ANONYMOUS=true` lets the companion UI and BFF work with no login —
+useful for iterating on the UI before a `ci-mentra` client is registered in CI-Portal.
+
+> ⚠️ **Never enable this in production.** It exposes `/api/companion` — and therefore
+> the wearer's memory — to any unauthenticated caller that can reach the port.
+
+## MentraOS manifest (`app_config.json`)
+
+`app_config.json` is the **MentraOS manifest**: it declares the wearer-facing settings
+that MentraOS renders in its own app settings UI, and the voice tools the glasses can
+invoke. MentraOS reads it — changing a setting or tool here changes what the wearer
+sees and can say, so keep it in sync with the env vars above.
+
 ## Runtime modes
 
 - `MENTRA_RUNTIME_MODE=cloud` (default): starts the MentraOS cloud AppServer bridge using `MENTRA_API_KEY`.

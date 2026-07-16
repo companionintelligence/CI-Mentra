@@ -1,0 +1,130 @@
+{
+  "name": "Companion",
+  "description": "Your Companion on your glasses: a warm, private personal assistant that remembers. Ask a question and get a spoken answer grounded in your own Companion Memory; say \"remember this\" to save something forever; ask what you told it weeks ago and it will recall. Memory is opt-in — until you turn on \"Remember our conversations\" nothing is recalled or stored, and what is stored lives on your own Companion appliance, never a third-party cloud. REQUIRED PERMISSIONS (grant these in the MentraOS Developer Console at console.mentra.glass — the app_config.json schema has no permissions field): MICROPHONE (required — the voice loop cannot work without it); CAMERA (optional — only for the \"take a photo\" tool, which is off by default); CALENDAR (optional — only for the \"what's on my calendar\" tool); NOTIFICATIONS and LOCATION (optional — reserved for future context features). Every optional capability degrades gracefully: if the permission is not granted or the hardware is absent, the core voice loop keeps working.",
+  "version": "1.0.0",
+  "settings": [
+    {
+      "type": "group",
+      "key": "assistant_group",
+      "label": "Assistant",
+      "title": "Assistant"
+    },
+    {
+      "type": "select",
+      "key": "transcribe_language",
+      "label": "Language you speak (used to transcribe your voice)",
+      "defaultValue": "",
+      "options": [
+        { "label": "Detect automatically", "value": "" },
+        { "label": "English", "value": "en" },
+        { "label": "Spanish", "value": "es" },
+        { "label": "French", "value": "fr" },
+        { "label": "German", "value": "de" },
+        { "label": "Portuguese", "value": "pt" },
+        { "label": "Japanese", "value": "ja" }
+      ]
+    },
+    {
+      "type": "text",
+      "key": "assistant_voice_id",
+      "label": "Voice ID (leave blank for the default voice)",
+      "defaultValue": ""
+    },
+    {
+      "type": "toggle",
+      "key": "speak_answers",
+      "label": "Speak answers out loud (when off, answers only appear on the display)",
+      "defaultValue": true
+    },
+    {
+      "type": "group",
+      "key": "memory_group",
+      "label": "Memory",
+      "title": "Memory"
+    },
+    {
+      "type": "toggle",
+      "key": "memory_enabled",
+      "label": "Remember our conversations (stored on your own Companion appliance)",
+      "defaultValue": false
+    },
+    {
+      "type": "group",
+      "key": "capture_group",
+      "label": "Capture",
+      "title": "Capture"
+    },
+    {
+      "type": "toggle",
+      "key": "camera_capture_enabled",
+      "label": "Allow \"take a photo\" to capture and save to memory",
+      "defaultValue": false
+    }
+  ],
+  "tools": [
+    {
+      "id": "remember_this",
+      "description": "Save something to the wearer's long-term Companion Memory so it can be recalled later. Use for facts, preferences, names, codes, reminders and anything the wearer explicitly wants kept.",
+      "activationPhrases": [
+        "note this",
+        "make a note",
+        "don't let me forget",
+        "save this to memory"
+      ],
+      "parameters": {
+        "content": {
+          "type": "string",
+          "description": "The exact fact or note to remember, phrased so it will still make sense months from now.",
+          "required": true
+        }
+      }
+    },
+    {
+      "id": "search_memory",
+      "description": "Search the wearer's long-term Companion Memory and return what is relevant to a question. Use when the wearer asks what they said, what they know, or anything about their own past.",
+      "activationPhrases": [
+        "search my memory",
+        "what do you know about",
+        "what did I say about",
+        "do you remember",
+        "look up in my memory"
+      ],
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "What to search the wearer's memory for, in natural language.",
+          "required": true
+        }
+      }
+    },
+    {
+      "id": "whats_on_my_calendar",
+      "description": "Tell the wearer what is coming up next on their calendar, using the calendar events MentraOS has synced to this session. Requires the CALENDAR permission.",
+      "activationPhrases": [
+        "what's on my calendar",
+        "what is on my calendar",
+        "what's next on my schedule",
+        "do I have any meetings",
+        "what's my next meeting"
+      ]
+    },
+    {
+      "id": "take_photo",
+      "description": "Capture a photo through the glasses camera and save a memory fragment describing it. Requires the CAMERA permission and the 'Allow take a photo' setting.",
+      "activationPhrases": [
+        "take a photo",
+        "take a picture",
+        "capture this",
+        "remember what I'm looking at",
+        "snap a photo"
+      ],
+      "parameters": {
+        "note": {
+          "type": "string",
+          "description": "Optional note describing why the photo is being taken or what is in view.",
+          "required": false
+        }
+      }
+    }
+  ]
+}

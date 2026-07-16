@@ -84,6 +84,23 @@ export const config = {
    * - The static `facade.apiKey` remains a fallback for machine/dev clients.
    */
   auth: {
+    /**
+     * Owner allowlist — WHO may use this appliance, as opposed to WHO CAN LOG IN.
+     *
+     * A valid CI-Portal login only proves the caller has *a* Portal account; it
+     * says nothing about whether they own THIS pair of glasses. `portal.audience`
+     * accepts several first-party client ids, so without this list any Portal
+     * user who reaches the box gets full read/write on the wearer's private
+     * memory. Entries are matched case-insensitively against the session user's
+     * `email` or `sub`.
+     *
+     * Empty (the default) = single-user appliance: the first Portal user to sign
+     * in is served, and `companion-auth` warns once that this should be set.
+     */
+    owners: (process.env.MENTRA_ALLOWED_USERS || '')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
     portal: {
       enabled: isTruthy(process.env.PORTAL_OIDC_ENABLED),
       // Expected `iss` claim. CI-Portal (better-auth) serves discovery under
@@ -150,6 +167,31 @@ export const config = {
     // Which Hub app slug's inference credentials to adopt: hermes-agent | openclaw
     appSlug: process.env.HUB_APP_SLUG || 'hermes-agent',
     bootstrap: isTruthy(process.env.HUB_INFERENCE_BOOTSTRAP),
+  },
+  /**
+   * Companion Memory (CI-Server). The memory-scoped routes are `x-api-key`
+   * guarded (NOT Portal OIDC), so this needs a CI-Server memory key — the same
+   * `CI_SERVER_TOKEN` the Hermes/OpenClaw plugins use. All calls are fail-open.
+   */
+  memory: {
+    enabled: isTruthy(process.env.MENTRA_MEMORY_ENABLED),
+    baseUrl: normalizeBaseUrl(process.env.CI_SERVER_URL, 'http://ci-server:8642', 'http'),
+    apiKey: process.env.CI_SERVER_MEMORY_KEY || process.env.CI_SERVER_TOKEN || '',
+    platform: process.env.MENTRA_MEMORY_PLATFORM || 'mentra',
+    recallMaxResults: parseInt(process.env.MENTRA_MEMORY_RECALL_MAX || '6'),
+  },
+  /** The assistant persona + short-term (in-session) memory settings. */
+  agent: {
+    persona:
+      process.env.MENTRA_PERSONA ||
+      'You are Companion, a warm, concise personal assistant on smart glasses. Use the provided memory and context to personalize answers. Keep spoken replies to 1-3 sentences unless asked for detail.',
+    language: process.env.MENTRA_LANGUAGE || 'en-US',
+    maxHistoryTurns: parseInt(process.env.MENTRA_MAX_HISTORY_TURNS || '8'),
+  },
+  /** Dev-only conveniences. Never enable in production. */
+  dev: {
+    // Lets the companion UI + BFF work without a login (local development only).
+    allowAnonymous: isTruthy(process.env.MENTRA_DEV_ALLOW_ANONYMOUS),
   },
   database: { url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mentra' },
   redis: { url: process.env.REDIS_URL || 'redis://localhost:6379' },
