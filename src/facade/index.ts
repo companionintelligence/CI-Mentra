@@ -4,13 +4,13 @@ import { chatCompletionsRouter } from './chat-completions';
 import { responsesRouter } from './responses';
 import { audioTranscriptionsRouter } from './audio-transcriptions';
 import { audioSpeechRouter } from './audio-speech';
-import { requireApiKey } from '../middleware/auth';
+import { requireAuth } from '../middleware/auth';
 import { rateLimitMiddleware } from '../middleware/rate-limit';
 
 export const facadeRouter = Router();
 
-// Apply auth and rate limiting to all facade routes
-facadeRouter.use(requireApiKey);
+// Apply auth (CI-Portal OIDC or static facade key) and rate limiting to all facade routes
+facadeRouter.use(requireAuth);
 facadeRouter.use(rateLimitMiddleware);
 
 facadeRouter.use('/models', modelsRouter);

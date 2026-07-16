@@ -1,6 +1,81 @@
 # CI-Mentra
 Mentra Glass Live App
 
+## Companion Intelligence integration
+
+CI-Mentra is a Device-layer bridge: it turns Mentra glasses voice input into an
+LLM response and speaks it back, and exposes an OpenAI-compatible façade
+(`/v1/*`). It integrates with the CI platform in three ways.
+
+### 1. Login via CI-Portal OIDC (SSO)
+
+CI-Portal is the platform IdP (better-auth, EdDSA). CI-Mentra supports **both**
+OIDC patterns; they can be enabled independently.
+
+**A. Resource server — validate a presented token.** Set `PORTAL_OIDC_ENABLED=true`
+to accept a **CI-Portal JWT** in `Authorization: Bearer …`, validated via Portal's
+JWKS with `iss`/`aud`/`exp` checks (mirrors CI-Server's `PortalTokenService`).
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `PORTAL_OIDC_ENABLED` | Accept Portal OIDC bearer tokens | `false` |
+| `PORTAL_OIDC_ISSUER` | Expected `iss` — the **bare origin**, no `/api/auth` | `https://hub.companionintelligence.com` |
+| `PORTAL_OIDC_JWKS_URI` | Portal JWKS endpoint | `<origin>/api/auth/jwks` |
+| `PORTAL_OIDC_AUDIENCE` | Comma-separated allowlist of accepted `aud` (client ids) | `ci-mentra,ci-import-tools,ci-server,ci-hub` |
+
+**B. Interactive login — Authorization Code + PKCE (like CI-Import-Tools).** Set
+`MENTRA_OIDC_ENABLED=true` to expose a browser sign-in flow under `/api/auth`:
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/auth/config` | Whether login is enabled + where to start it |
+| `GET /api/auth/login` | Begins PKCE; 302 → CI-Portal authorize |
+| `GET /api/auth/callback` | Exchanges the code, verifies the id_token, sets a session |
+| `GET /api/auth/me` | The signed-in user (or 401) |
+| `ALL /api/auth/logout` | Ends the session; RP-initiated logout if supported |
+
+The flow is discovery-driven (no hardcoded endpoints), verifies the `id_token`
+signature + `nonce`, and keeps all tokens **server-side** — the browser only holds
+the signed `mentra_session` cookie, which the façade also accepts as a credential.
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `MENTRA_OIDC_ENABLED` | Enable the interactive login flow | `false` |
+| `MENTRA_OIDC_ISSUER` | Discovery base URL (**includes** `/api/auth`) | `https://hub.companionintelligence.com/api/auth` |
+| `MENTRA_OIDC_CLIENT_ID` | Registered public PKCE client | `ci-mentra` |
+| `MENTRA_OIDC_SCOPES` | Requested scopes | `openid profile email offline_access` |
+| `MENTRA_OIDC_REDIRECT_URI` | Override; else `${proto}://${host}/api/auth/callback` | _(derived)_ |
+| `MENTRA_SESSION_SECRET` | Signs session/tx cookies (set in prod) | _(random per boot)_ |
+
+> A dedicated `ci-mentra` client should be registered in CI-Portal (its
+> `/api/auth/oauth2/register` endpoint exists). Until then, set
+> `MENTRA_OIDC_CLIENT_ID=ci-import-tools` — a registered public client that
+> allows localhost redirects — to run the flow. `GET /health` reports the active
+> auth mode and whether interactive login is enabled.
+
+The static `FACADE_API_KEY` remains a service-client fallback in all cases.
+
+### 2. Standardized Ollama connection (CI-Hub instance)
+
+The Ollama base URL resolves in this order: `OLLAMA_BASE_URL` → `OLLAMA_HOST` →
+`LLM_API_BASE` (any trailing `/v1` is stripped) → `http://localhost:11434`. This
+accepts both this repo's original var and the CI-Hub / CI-Server conventions, so
+the same env works locally and inside a Hub-managed container (where the Hub
+injects `http://host.docker.internal:11434`). A non-empty bearer (`OLLAMA_API_KEY`,
+default `ollama`) is always sent, matching the appliance convention. The default
+chat model comes from `LLM_DEFAULT_CHAT_MODEL`.
+
+### 3. Backend hermes / openclaw server on CI-Hub
+
+The CI-Hub does not proxy inference; it hands each marketplace app (slug
+`hermes-agent` / `openclaw`) an OpenAI-compatible endpoint. CI-Mentra exposes a
+**`hermes` provider** for that backend. Configure it directly with
+`HERMES_OPENAI_BASE_URL` / `HERMES_OPENAI_API_KEY` / `HERMES_DEFAULT_MODEL`, or
+set `HUB_INFERENCE_BOOTSTRAP=true` to auto-discover credentials at startup from
+`GET ${CI_HUB_URL}/api/inference/apps/${HUB_APP_SLUG}/bootstrap.env` (fail-open).
+Route a request to it by setting `DEFAULT_PROVIDER=hermes`, or per-request with a
+`hermes:` / `openclaw:` model prefix (e.g. `hermes:gemma4:latest`).
+
 ## Runtime modes
 
 - `MENTRA_RUNTIME_MODE=cloud` (default): starts the MentraOS cloud AppServer bridge using `MENTRA_API_KEY`.
