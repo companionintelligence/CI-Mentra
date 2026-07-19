@@ -148,4 +148,18 @@ describe('config', () => {
       expect(config.auth.owners).toEqual(['user_01hxyz']);
     });
   });
+
+  describe('Companion Memory path prefix (CI_SERVER_MEMORY_PATH_PREFIX)', () => {
+    it('defaults to /api (the gateway/Hub-fronted topology)', async () => {
+      delete process.env.CI_SERVER_MEMORY_PATH_PREFIX;
+      const { config } = await import('../config');
+      expect(config.memory.pathPrefix).toBe('/api');
+    });
+
+    it('supports an empty prefix for a direct-to-API topology', async () => {
+      process.env.CI_SERVER_MEMORY_PATH_PREFIX = '';
+      const { config } = await import('../config');
+      expect(config.memory.pathPrefix).toBe('');
+    });
+  });
 });

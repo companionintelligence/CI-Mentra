@@ -14,6 +14,7 @@ const mockConfig = {
     apiKey: 'memory-key',
     platform: 'mentra',
     recallMaxResults: 6,
+    pathPrefix: '/api',
   },
 };
 jest.mock('../../config', () => ({ config: mockConfig }));
@@ -24,6 +25,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockConfig.memory.enabled = true;
   mockConfig.memory.apiKey = 'memory-key';
+  mockConfig.memory.pathPrefix = '/api';
 });
 
 describe('memory gating', () => {
@@ -75,6 +77,27 @@ describe('getContext', () => {
     mockGet.mockResolvedValue({ data: {} });
     expect(await getContext()).toBe('');
   });
+
+  it('falls back to `context` when `block` is absent (older/other CI-Server surfaces)', async () => {
+    mockGet.mockResolvedValue({ data: { context: '## Profile via context key' } });
+    expect(await getContext()).toBe('## Profile via context key');
+  });
+
+  it('falls back to a raw `results[]` array, joining text/content/summary fields', async () => {
+    mockGet.mockResolvedValue({
+      data: { results: [{ text: 'likes espresso' }, { content: 'works remotely' }, { summary: '' }] },
+    });
+    expect(await getContext()).toBe('likes espresso\n\nworks remotely');
+  });
+});
+
+describe('configurable path prefix', () => {
+  it('hits a bare /memory/* path when pathPrefix is empty (direct-to-API topology)', async () => {
+    mockConfig.memory.pathPrefix = '';
+    mockGet.mockResolvedValue({ data: { block: 'x' } });
+    await getContext();
+    expect(mockGet).toHaveBeenCalledWith('/memory/context');
+  });
 });
 
 describe('recall', () => {
@@ -97,6 +120,11 @@ describe('recall', () => {
 
     mockPost.mockRejectedValue(new Error('boom'));
     await expect(recall('q')).resolves.toEqual({ block: '', resultCount: 0 });
+  });
+
+  it('derives resultCount from results[].length when the count field is absent', async () => {
+    mockPost.mockResolvedValue({ data: { results: [{ text: 'a' }, { text: 'b' }] } });
+    expect(await recall('q')).toEqual({ block: 'a\n\nb', resultCount: 2 });
   });
 });
 

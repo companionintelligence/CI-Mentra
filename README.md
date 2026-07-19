@@ -86,18 +86,26 @@ utterance — the same integration the Hermes / OpenClaw plugins use.
 |-----|---------|---------|
 | `MENTRA_MEMORY_ENABLED` | Enable Companion Memory | `false` |
 | `CI_SERVER_URL` | CI-Server origin | `http://ci-server:8642` |
+| `CI_SERVER_MEMORY_PATH_PREFIX` | Path prefix in front of `/memory/*` (see below) | `/api` |
 | `CI_SERVER_MEMORY_KEY` | Memory-scoped CI-Server API key (falls back to `CI_SERVER_TOKEN`) | _(empty)_ |
 | `MENTRA_MEMORY_PLATFORM` | Tags memories/turns written by this device | `mentra` |
 | `MENTRA_MEMORY_RECALL_MAX` | Recall hits pulled into the prompt per utterance | `6` |
 
-> **The memory API is _not_ Portal-OIDC authenticated.** CI-Server's `/api/memory/*`
+> **The memory API is _not_ Portal-OIDC authenticated.** CI-Server's `/memory/*`
 > routes are `ApiKeyGuard`-only and expect an **`x-api-key`** header carrying a
 > **memory-scoped CI-Server API key** — *not* a CI-Portal bearer token. Issue one
 > from CI-Server exactly as you would for the Hermes/OpenClaw `CI_SERVER_TOKEN`.
 > Portal OIDC (§1) authenticates the *wearer* to CI-Mentra; this key authenticates
 > *CI-Mentra* to CI-Server. They are separate credentials.
 
-The loop, per session and per utterance:
+> **`CI_SERVER_MEMORY_PATH_PREFIX` depends on what `CI_SERVER_URL` points at.**
+> CI-Server's NestJS app has no `/api` prefix of its own — its `MemoryController`
+> mounts bare at `/memory`. The `/api` prefix exists only on the gateway/reverse-proxy
+> in front of it. So: pointed at the gateway or a Hub-fronted origin (the normal
+> case) → keep the default `/api`; pointed directly at the raw CI-Server API
+> container, bypassing any gateway → set it to `` (empty).
+
+The loop, per session and per utterance (paths shown with the default `/api` prefix):
 
 | Call | When | Purpose |
 |------|------|---------|
@@ -105,6 +113,9 @@ The loop, per session and per utterance:
 | `POST /api/memory/recall` | Every utterance | Hybrid pgvector RAG; returns a prompt block of relevant memories |
 | `POST /api/memory/turn` | After every exchange | Persists the turn (idempotent server-side) |
 | `POST /api/memory/write` | On "remember this…" | Stores a durable memory fragment |
+
+Response parsing is tolerant of minor CI-Server surface drift: it reads `block`,
+falling back to `context`, falling back to joining `results[].text/content/summary`.
 
 `MENTRA_MEMORY_ENABLED=true` **and** a non-empty key are both required — either
 missing and memory stays off. **Every call is fail-open:** if CI-Server is

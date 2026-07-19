@@ -179,6 +179,22 @@ export const config = {
     apiKey: process.env.CI_SERVER_MEMORY_KEY || process.env.CI_SERVER_TOKEN || '',
     platform: process.env.MENTRA_MEMORY_PLATFORM || 'mentra',
     recallMaxResults: parseInt(process.env.MENTRA_MEMORY_RECALL_MAX || '6'),
+    /**
+     * Path prefix in front of `/memory/{context,recall,turn,write}`.
+     *
+     * CI-Server's NestJS app has no global `/api` prefix itself (its
+     * `MemoryController` mounts bare at `/memory`); the prefix only exists on
+     * the gateway/reverse-proxy in front of it (see
+     * `infrastructure/gateway/nginx.conf`'s `location /api/ { rewrite ^/api/(.*)$
+     * /$1 break; }`). So the correct value depends on what `CI_SERVER_URL`
+     * actually points at:
+     *   - the gateway / a Hub-fronted origin → `/api` (default, matches the
+     *     platform convention every other client uses)
+     *   - the raw CI-Server API container directly → '' (empty)
+     * CI-Even-Realities' agent-hub hits the same fork and made it configurable
+     * for the same reason — mirrored here rather than hardcoded.
+     */
+    pathPrefix: process.env.CI_SERVER_MEMORY_PATH_PREFIX ?? '/api',
   },
   /** The assistant persona + short-term (in-session) memory settings. */
   agent: {
