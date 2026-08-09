@@ -1,0 +1,807 @@
+/* ==========================================================================
+   Companion — wearable UI for the R1 ring + phone.
+   Dark-first: this is glanced at in the dark, from a wrist or a pocket.
+   Two input models share one surface, so every affordance is both a >=48px
+   touch target and a ring-focusable stop with a loud, unmissable highlight.
+   ========================================================================== */
+
+/* ---------- Tokens ---------- */
+:root {
+  color-scheme: dark;
+
+  --bg: #0a1312;
+  --bg-glow: #10201e;
+  --surface: #0f1e1c;
+  --surface-2: #142825;
+  --surface-3: #1b332f;
+
+  --text: #e9f4f2;
+  --text-dim: #a8c3c0;
+  --text-faint: #7a9895;
+
+  --accent: #5fbdc3;
+  --accent-soft: #abd4d8;
+  --accent-deep: #1f5f66;
+  --accent-glow: rgba(95, 189, 195, 0.22);
+  --accent-ink: #04100f;
+
+  --danger: #ff9182;
+  --danger-bg: rgba(255, 145, 130, 0.12);
+
+  --line: rgba(95, 189, 195, 0.16);
+  --line-strong: rgba(95, 189, 195, 0.34);
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  --tap: 48px;
+  --pad: 20px;
+  --shell: 34rem;
+
+  --ease: cubic-bezier(0.22, 0.7, 0.3, 1);
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+          "Noto Sans", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --bg: #f1f7f6;
+    --bg-glow: #e2efee;
+    --surface: #ffffff;
+    --surface-2: #f2f8f7;
+    --surface-3: #e6f1f0;
+
+    --text: #0a1c1c;
+    --text-dim: #3f5c5b;
+    --text-faint: #64817f;
+
+    --accent: #0f717a;
+    --accent-soft: #0b5a62;
+    --accent-deep: #abd4d8;
+    --accent-glow: rgba(15, 113, 122, 0.18);
+    --accent-ink: #ffffff;
+
+    --danger: #a52f1e;
+    --danger-bg: rgba(165, 47, 30, 0.08);
+
+    --line: rgba(15, 113, 122, 0.18);
+    --line-strong: rgba(15, 113, 122, 0.4);
+  }
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Components below set explicit `display`, which would beat the UA [hidden] rule. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  background-image:
+    radial-gradient(120% 70% at 50% -12%, var(--bg-glow) 0%, transparent 62%),
+    radial-gradient(90% 55% at 50% 112%, var(--accent-glow) 0%, transparent 70%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-wrap: break-word;
+}
+
+h1, h2, h3, p, dl, dd, ol, ul { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   Ring focus — the single most important piece of feedback on a ring, where
+   the highlight IS the cursor. Deliberately louder than any default outline.
+   ========================================================================== */
+[data-ring] {
+  outline: none;
+  transition: box-shadow 140ms var(--ease), transform 140ms var(--ease),
+              border-color 140ms var(--ease);
+}
+
+body.ring-mode [data-ring].is-ring,
+[data-ring]:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 6px var(--accent),
+    0 0 26px 2px var(--accent-glow);
+  border-color: var(--accent) !important;
+  z-index: 2;
+  position: relative;
+}
+
+body.ring-mode .mic.is-ring,
+.mic:focus-visible {
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  body.ring-mode .mic.is-ring, .mic:focus-visible { transform: none; }
+}
+
+/* ==========================================================================
+   Screens: boot, fatal, sign-in gate
+   ========================================================================== */
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad)
+           calc(var(--pad) + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.screen[hidden] { display: none; }
+
+.screen__title {
+  font-size: 2rem;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+.screen__note {
+  color: var(--text-dim);
+  font-size: 1.06rem;
+  max-width: 28ch;
+}
+.screen__fine {
+  color: var(--text-faint);
+  font-size: 0.86rem;
+  max-width: 34ch;
+  min-height: 1.2em;
+}
+
+.mark { color: var(--accent); line-height: 0; }
+
+.pulse-mark {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 3px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: spin 900ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ==========================================================================
+   App shell
+   ========================================================================== */
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.app[hidden] { display: none; }
+
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: calc(10px + env(safe-area-inset-top)) var(--pad) 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.appbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.appbar__mark { color: var(--accent); line-height: 0; }
+.appbar__name {
+  font-size: 0.98rem;
+  font-weight: 620;
+  letter-spacing: 0.01em;
+}
+.appbar__user {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iconbtn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.iconbtn:hover { color: var(--accent); background: var(--surface-2); }
+
+/* ---------- Inline, non-blocking error ----------
+   The region is the live region: it stays in the DOM, unhidden, forever, because
+   an aria-live region that only appears once it already holds text announces
+   nothing. It carries no chrome of its own, so while empty it is a zero-height
+   box — invisible without ever being display:none. The message inside it wears
+   the border/padding, and appearing IS the announcement. */
+.errorline {
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+}
+.errorline__msg {
+  margin-top: 8px;
+  padding: 11px 14px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+/* ---------- Views ---------- */
+.views {
+  flex: 1;
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 14px var(--pad) 20px;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view[hidden] { display: none; }
+
+.view__title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+
+/* ==========================================================================
+   TALK
+   ========================================================================== */
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 8.5rem;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.transcript {
+  font-size: 0.95rem;
+  color: var(--accent-soft);
+  min-height: 1.4em;
+}
+.transcript[data-empty="true"] { color: var(--text-faint); }
+.transcript[data-interim="true"] { opacity: 0.72; font-style: italic; }
+
+.answer {
+  font-size: 1.32rem;
+  line-height: 1.42;
+  letter-spacing: -0.011em;
+  color: var(--text);
+}
+.answer__idle {
+  font-size: 1rem;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+.answer .md-p + .md-p { margin-top: 0.6em; }
+
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text-faint);
+}
+.thinking[hidden] { display: none; }
+.thinking__dots { display: inline-flex; gap: 4px; }
+.thinking__dots i {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 1.1s infinite ease-in-out both;
+}
+.thinking__dots i:nth-child(2) { animation-delay: 0.16s; }
+.thinking__dots i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+/* ---------- Memory chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chips:empty { display: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-soft);
+  font-size: 0.76rem;
+  font-weight: 560;
+  letter-spacing: 0.01em;
+}
+.chip--mute {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--text-faint);
+}
+.chip__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- Mic ---------- */
+.micwrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 2px;
+}
+
+.mic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 148px;
+  height: 148px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background:
+    radial-gradient(120% 120% at 50% 12%, var(--surface-3) 0%, var(--surface) 72%);
+  color: var(--accent);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.mic__icon { position: relative; z-index: 1; }
+
+.mic__halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mic[aria-pressed="true"] {
+  background: radial-gradient(120% 120% at 50% 12%, var(--accent) 0%, var(--accent-deep) 96%);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.mic[aria-pressed="true"] .mic__halo {
+  opacity: 1;
+  animation: halo 1.5s var(--ease) infinite;
+}
+@keyframes halo {
+  0%   { transform: scale(1);    opacity: 0.55; }
+  100% { transform: scale(1.28); opacity: 0; }
+}
+
+.mic:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  color: var(--text-faint);
+}
+
+.hint {
+  font-size: 0.84rem;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* ==========================================================================
+   Controls
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.97rem;
+  font-weight: 580;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border-color: var(--line);
+}
+.btn--ghost:hover:not(:disabled) { color: var(--text); border-color: var(--line-strong); }
+.btn--danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn--wide { width: 100%; }
+.btn--sm { min-height: 38px; padding: 0 13px; font-size: 0.84rem; }
+.btn--xl {
+  min-height: 62px;
+  padding: 0 30px;
+  font-size: 1.08rem;
+  border-radius: var(--r-lg);
+  max-width: 22rem;
+  width: 100%;
+}
+
+.btn--ok {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+  color: var(--accent-soft);
+}
+
+/* Voice toggle: the icon carries the state, so it reads at a glance. */
+#voice-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--line-strong); }
+#voice-toggle[aria-pressed="true"] .voice-off { display: none; }
+#voice-toggle[aria-pressed="false"] .voice-on { display: none; }
+
+.field {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field::placeholder { color: var(--text-faint); }
+.field--area { resize: vertical; min-height: 5.2rem; line-height: 1.45; }
+
+.composer { display: flex; gap: 9px; }
+.composer__field { flex: 1; min-width: 0; }
+.composer__send { flex: none; }
+
+/* ---------- Panels ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.panel__title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---------- Rendered blocks ----------
+   The .md-* classes are only ever emitted by renderBlock(), so they're styled
+   unscoped: the same markup is painted into .block (memory, profile) AND into
+   .answer (the spoken reply), and scoping to one would silently skip the other. */
+.block { font-size: 1rem; line-height: 1.55; }
+.block__idle { color: var(--text-faint); }
+
+.md-h {
+  /* em, not rem — a heading must scale with whichever block paints it
+     (1rem in .block, 1.32rem in .answer) instead of shrinking below its body. */
+  font-size: 0.94em;
+  font-weight: 660;
+  color: var(--accent-soft);
+  letter-spacing: 0.01em;
+  margin: 0.9em 0 0.3em;
+}
+.md-h:first-child { margin-top: 0; }
+.md-p { margin: 0.5em 0; }
+.md-p:first-child { margin-top: 0; }
+.md-list {
+  margin: 0.45em 0;
+  padding-left: 1.05em;
+  list-style: none;
+}
+.md-list li {
+  position: relative;
+  margin: 0.28em 0;
+  padding-left: 0.7em;
+}
+.md-list li::before {
+  content: "";
+  position: absolute;
+  left: -0.15em;
+  top: 0.62em;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.md-list--num { counter-reset: md; }
+.md-list--num li::before {
+  content: counter(md) ".";
+  counter-increment: md;
+  top: 0;
+  left: -0.9em;
+  width: auto; height: auto;
+  border-radius: 0;
+  background: none;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.86em;
+}
+.md-p code, .md-h code, .md-list code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  font-family: var(--mono);
+  font-size: 0.86em;
+}
+.md-p strong, .md-h strong, .md-list strong { font-weight: 660; color: var(--text); }
+
+/* ---------- Session history ---------- */
+.history { display: flex; flex-direction: column; gap: 12px; }
+.history__empty { color: var(--text-faint); font-size: 0.92rem; }
+.history__item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-left: 11px;
+  border-left: 2px solid var(--line-strong);
+}
+.history__item--user { border-left-color: var(--text-faint); }
+.history__who {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.history__item--assistant .history__who { color: var(--accent); }
+.history__text { font-size: 0.95rem; line-height: 1.45; color: var(--text-dim); }
+.history__item--assistant .history__text { color: var(--text); }
+
+/* ---------- Facts (status) ---------- */
+.facts { display: flex; flex-direction: column; gap: 1px; }
+.facts__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.facts__row:last-child { border-bottom: 0; }
+.facts dt { font-size: 0.9rem; color: var(--text-faint); }
+.facts dd {
+  font-size: 0.9rem;
+  font-weight: 560;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.facts dd.is-on { color: var(--accent); }
+.facts dd.is-off { color: var(--text-faint); }
+.facts dd.is-mono { font-family: var(--mono); font-size: 0.82rem; }
+
+/* ==========================================================================
+   Tab bar — bottom, thumb-reachable
+   ========================================================================== */
+.tabbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 8px var(--pad) calc(8px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 56px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.tab[aria-selected="true"] {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--accent);
+}
+
+/* ==========================================================================
+   Ring controls sheet
+   ========================================================================== */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--pad);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+.sheet[hidden] { display: none; }
+
+.sheet__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: var(--shell);
+  margin: auto 0 0;
+  padding: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xl) var(--r-xl) var(--r-md) var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.42);
+  animation: rise 220ms var(--ease);
+}
+@keyframes rise { from { transform: translateY(14px); opacity: 0; } }
+
+.sheet__title {
+  font-size: 1.16rem;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+}
+.sheet__note {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.keymap { display: flex; flex-direction: column; }
+.keymap__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.keymap__row:last-child { border-bottom: 0; }
+.keymap dt {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 7.4rem;
+}
+.keymap dd {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+.keymap__alt { font-size: 0.72rem; color: var(--text-faint); }
+
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--accent-soft);
+  font-family: var(--font);
+  font-size: 0.76rem;
+  font-weight: 620;
+}
+
+/* ==========================================================================
+   Larger screens — the phone layout is the truth; desktop just centers it.
+   ========================================================================== */
+@media (min-width: 40rem) {
+  body { font-size: 18px; }
+  .answer { font-size: 1.44rem; }
+  .sheet { align-items: center; }
+  .sheet__panel {
+    margin: 0;
+    border-radius: var(--r-xl);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root { --line: var(--accent); --line-strong: var(--accent); --text-faint: var(--text-dim); }
+}

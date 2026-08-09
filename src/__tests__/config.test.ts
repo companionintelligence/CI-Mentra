@@ -122,4 +122,44 @@ describe('config', () => {
     expect(config.auth.oidc.enabled).toBe(true);
     expect(config.auth.oidc.clientId).toBe('ci-import-tools');
   });
+
+  describe('owner allowlist (MENTRA_ALLOWED_USERS)', () => {
+    it('defaults to an empty list (single-user appliance)', async () => {
+      delete process.env.MENTRA_ALLOWED_USERS;
+      const { config } = await import('../config');
+      expect(config.auth.owners).toEqual([]);
+    });
+
+    it('parses a comma-separated list, trimming and lowercasing entries', async () => {
+      process.env.MENTRA_ALLOWED_USERS = ' Liam@Example.com , wearer@example.com ';
+      const { config } = await import('../config');
+      expect(config.auth.owners).toEqual(['liam@example.com', 'wearer@example.com']);
+    });
+
+    it('drops empty entries so a stray comma can never mean "allow everyone"', async () => {
+      process.env.MENTRA_ALLOWED_USERS = 'liam@example.com,,   ,';
+      const { config } = await import('../config');
+      expect(config.auth.owners).toEqual(['liam@example.com']);
+    });
+
+    it('accepts an OIDC subject as well as an email', async () => {
+      process.env.MENTRA_ALLOWED_USERS = 'user_01HXYZ';
+      const { config } = await import('../config');
+      expect(config.auth.owners).toEqual(['user_01hxyz']);
+    });
+  });
+
+  describe('Companion Memory path prefix (CI_SERVER_MEMORY_PATH_PREFIX)', () => {
+    it('defaults to /api (the gateway/Hub-fronted topology)', async () => {
+      delete process.env.CI_SERVER_MEMORY_PATH_PREFIX;
+      const { config } = await import('../config');
+      expect(config.memory.pathPrefix).toBe('/api');
+    });
+
+    it('supports an empty prefix for a direct-to-API topology', async () => {
+      process.env.CI_SERVER_MEMORY_PATH_PREFIX = '';
+      const { config } = await import('../config');
+      expect(config.memory.pathPrefix).toBe('');
+    });
+  });
 });
