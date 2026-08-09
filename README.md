@@ -1,6 +1,33 @@
 # CI-Mentra
 Mentra Glass Live App
 
+## Runtime
+
+The service runs on either [Deno](https://deno.com) (2.9+, preferred; used by
+the Dockerfile) or Node.js 20+. Source is real ESM (`"type": "module"` +
+`module: NodeNext` in `tsconfig.json`); Deno resolves npm dependencies
+directly via `deno.json`'s `nodeModulesDir: "auto"`.
+
+```bash
+# Deno
+deno task dev     # deno run -A --watch src/index.ts
+deno task test    # deno test -A src/__tests__/  (see "Testing" note below)
+deno task build   # deno check src/index.ts (type-check)
+deno task lint
+
+# Node (unchanged)
+npm install
+npm run dev       # ts-node src/index.ts
+npm test          # jest
+npm run build     # tsc -> dist/
+```
+
+**Testing note:** the existing test suite uses `jest.mock()` for module
+mocking, which Deno's test runner has no equivalent for (Deno's ES module
+records are immutable, so modules can't be monkey-patched the way Jest does).
+`deno task test` / `deno test` will fail against these Jest-style specs as a
+result — `npm test` (Jest) remains the supported way to run this suite today.
+
 ## Companion Intelligence integration
 
 CI-Mentra is a Device-layer bridge: it turns Mentra glasses voice input into an
