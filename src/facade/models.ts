@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { resolveProvider } from '../providers';
-import { config } from '../config';
-import { CanonicalTurn } from '../canonical/types';
+import { resolveProvider } from '../providers/index.ts';
+import { config } from '../config.ts';
+import { CanonicalTurn } from '../canonical/types.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-models' });

@@ -1,4 +1,4 @@
-import { createLocalBluetoothRuntimeInfo, listBluetoothTargets, resolveBluetoothVariant } from '../../bluetooth/local-sdk';
+import { createLocalBluetoothRuntimeInfo, listBluetoothTargets, resolveBluetoothVariant } from '../../bluetooth/local-sdk.ts';
 
 describe('local bluetooth sdk helpers', () => {
   it('defaults to Mentra Live when target is omitted', () => {

@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
-import { config } from '../config';
+import { config } from '../config.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'portal-oidc' });

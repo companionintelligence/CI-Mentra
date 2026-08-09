@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { normalizeChatCompletionToCanonical, ChatCompletionRequest } from '../canonical/normalizer';
-import { resolveProvider } from '../providers';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { normalizeChatCompletionToCanonical, ChatCompletionRequest } from '../canonical/normalizer.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { AuthenticatedRequest } from '../middleware/auth.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-chat' });

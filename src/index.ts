@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import pino from 'pino';
-import { applyHubInferenceBootstrap } from './hub/inference-bootstrap';
+import { applyHubInferenceBootstrap } from './hub/inference-bootstrap.ts';
 
 const logger = pino({ name: 'main' });
 
@@ -18,11 +18,11 @@ async function main(): Promise<void> {
 
   // Deferred imports: these modules read `config`, which must resolve AFTER the
   // Hub bootstrap has populated the environment.
-  const { config } = await import('./config');
-  const { facadeRouter } = await import('./facade');
-  const { authRouter } = await import('./auth/routes');
-  const { MentraBridge } = await import('./bridge/mentra-bridge');
-  const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk');
+  const { config } = await import('./config.ts');
+  const { facadeRouter } = await import('./facade/index.ts');
+  const { authRouter } = await import('./auth/routes.ts');
+  const { MentraBridge } = await import('./bridge/mentra-bridge.ts');
+  const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk.ts');
 
   const localBluetoothRuntimeInfo =
     config.runtime.mode === 'bluetooth-local'

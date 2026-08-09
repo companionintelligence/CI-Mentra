@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { pcmToWav, WavConversionOptions } from './pcm-to-wav';
+import { pcmToWav, WavConversionOptions } from './pcm-to-wav.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'vad-buffer' });

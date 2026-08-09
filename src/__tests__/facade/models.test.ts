@@ -25,9 +25,9 @@ jest.mock('../../store/redis', () => ({
   incrRateLimit: jest.fn().mockResolvedValue(1),
 }));
 
-import { modelsRouter } from '../../facade/models';
-import { requireApiKey } from '../../middleware/auth';
-import { rateLimitMiddleware } from '../../middleware/rate-limit';
+import { modelsRouter } from '../../facade/models.ts';
+import { requireApiKey } from '../../middleware/auth.ts';
+import { rateLimitMiddleware } from '../../middleware/rate-limit.ts';
 
 const app = express();
 app.use(express.json());

@@ -8,7 +8,7 @@ import {
   endSessionUrl,
   type Discovery,
   type OidcConfig,
-} from '../../auth/oidc';
+} from '../../auth/oidc.ts';
 
 const DOC: Discovery = {
   issuer: 'https://hub.companionintelligence.com',

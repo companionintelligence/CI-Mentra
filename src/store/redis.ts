@@ -1,5 +1,5 @@
-import Redis from 'ioredis';
-import { config } from '../config';
+import { Redis } from 'ioredis';
+import { config } from '../config.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'redis' });
@@ -10,9 +10,9 @@ export function getRedis(): Redis {
   if (!redisClient) {
     redisClient = new Redis(config.redis.url, {
       lazyConnect: true,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      retryStrategy: (times: number) => Math.min(times * 50, 2000),
     });
-    redisClient.on('error', (err) => logger.error({ err }, 'Redis error'));
+    redisClient.on('error', (err: Error) => logger.error({ err }, 'Redis error'));
     redisClient.on('connect', () => logger.info('Redis connected'));
   }
   return redisClient;

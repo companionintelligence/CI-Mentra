@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { config } from '../config';
+import { config } from '../config.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'postgres' });

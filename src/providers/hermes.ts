@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { CanonicalTurn, CanonicalMessage } from '../canonical/types';
-import { Provider, ProviderChatResponse } from './types';
+import { CanonicalTurn, CanonicalMessage } from '../canonical/types.ts';
+import { Provider, ProviderChatResponse } from './types.ts';
 import { Response } from 'express';
-import { config } from '../config';
+import { config } from '../config.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'hermes-provider' });

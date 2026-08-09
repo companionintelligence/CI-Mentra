@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { config } from '../config';
+import { config } from '../config.ts';
 import {
   discover,
   pkcePair,
@@ -11,8 +11,8 @@ import {
   toUserClaims,
   endSessionUrl,
   type OidcConfig,
-} from './oidc';
-import { createSession, getSession, destroySession, SESSION_COOKIE } from './sessions';
+} from './oidc.ts';
+import { createSession, getSession, destroySession, SESSION_COOKIE } from './sessions.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'oidc-login' });

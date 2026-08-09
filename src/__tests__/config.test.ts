@@ -16,7 +16,7 @@ describe('config', () => {
     process.env.PORT = '7777';
     process.env.MENTRA_CLOUD_API_URL = 'ci-server.internal:8443/';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.mentra.packageName).toBe('com.example.alias');
     expect(config.mentra.apiKey).toBe('alias-api-key');
@@ -32,7 +32,7 @@ describe('config', () => {
     process.env.MENTRA_PORT = '7010';
     process.env.PORT = '7777';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.mentra.packageName).toBe('com.example.primary');
     expect(config.mentra.apiKey).toBe('primary-api-key');
@@ -44,7 +44,7 @@ describe('config', () => {
     process.env.VLLM_BASE_URL = 'vllm.internal:8000/';
     process.env.OPENAI_BASE_URL = 'https://openai-proxy.internal/';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.providers.ollama.baseUrl).toBe('http://ollama.local:11434');
     expect(config.providers.vllm.baseUrl).toBe('http://vllm.internal:8000');
@@ -60,7 +60,7 @@ describe('config', () => {
     process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
     process.env.LLM_DEFAULT_CHAT_MODEL = 'gemma4:latest';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.providers.ollama.baseUrl).toBe('http://host.docker.internal:11434');
     expect(config.providers.ollama.apiKey).toBe('ollama'); // dummy bearer default
@@ -74,7 +74,7 @@ describe('config', () => {
     process.env.LLM_API_BASE = 'http://host.docker.internal:11434/v1';
     process.env.HERMES_OPENAI_BASE_URL = 'http://hermes-gateway:8642/v1';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     // Providers append /v1 themselves, so config must not double it.
     expect(config.providers.ollama.baseUrl).toBe('http://host.docker.internal:11434');
@@ -85,7 +85,7 @@ describe('config', () => {
     delete process.env.PORTAL_OIDC_ENABLED;
     process.env.PORTAL_OIDC_AUDIENCE = 'ci-mentra, ci-server ,, ci-hub';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.auth.portal.enabled).toBe(false);
     // iss is the bare origin (no /api/auth suffix) — see live discovery doc.
@@ -98,7 +98,7 @@ describe('config', () => {
 
   it('enables Portal OIDC when PORTAL_OIDC_ENABLED is truthy', async () => {
     process.env.PORTAL_OIDC_ENABLED = 'true';
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
     expect(config.auth.portal.enabled).toBe(true);
   });
 
@@ -106,7 +106,7 @@ describe('config', () => {
     for (const key of ['MENTRA_OIDC_ENABLED', 'MENTRA_OIDC_ISSUER', 'MENTRA_OIDC_CLIENT_ID', 'MENTRA_OIDC_SCOPES']) {
       delete process.env[key];
     }
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.auth.oidc.enabled).toBe(false);
     // Discovery base URL includes /api/auth (discovery appends /.well-known/...).
@@ -118,7 +118,7 @@ describe('config', () => {
   it('supports overriding the OIDC login client id (e.g. reuse ci-import-tools)', async () => {
     process.env.MENTRA_OIDC_ENABLED = 'true';
     process.env.MENTRA_OIDC_CLIENT_ID = 'ci-import-tools';
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
     expect(config.auth.oidc.enabled).toBe(true);
     expect(config.auth.oidc.clientId).toBe('ci-import-tools');
   });

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { config } from '../config';
-import { isPortalAuthEnabled, verifyPortalToken } from '../auth/portal-token';
-import { getSession, SESSION_COOKIE } from '../auth/sessions';
+import { config } from '../config.ts';
+import { isPortalAuthEnabled, verifyPortalToken } from '../auth/portal-token.ts';
+import { getSession, SESSION_COOKIE } from '../auth/sessions.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'auth' });

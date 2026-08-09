@@ -1,4 +1,4 @@
-import { VadBuffer } from '../../voice/vad-buffer';
+import { VadBuffer } from '../../voice/vad-buffer.ts';
 
 function makePcmChunk(samples: number, value = 0): Buffer {
   const buf = Buffer.alloc(samples * 2, 0);

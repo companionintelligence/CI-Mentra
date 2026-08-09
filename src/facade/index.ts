@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { modelsRouter } from './models';
-import { chatCompletionsRouter } from './chat-completions';
-import { responsesRouter } from './responses';
-import { audioTranscriptionsRouter } from './audio-transcriptions';
-import { audioSpeechRouter } from './audio-speech';
-import { requireAuth } from '../middleware/auth';
-import { rateLimitMiddleware } from '../middleware/rate-limit';
+import { modelsRouter } from './models.ts';
+import { chatCompletionsRouter } from './chat-completions.ts';
+import { responsesRouter } from './responses.ts';
+import { audioTranscriptionsRouter } from './audio-transcriptions.ts';
+import { audioSpeechRouter } from './audio-speech.ts';
+import { requireAuth } from '../middleware/auth.ts';
+import { rateLimitMiddleware } from '../middleware/rate-limit.ts';
 
 export const facadeRouter = Router();
 

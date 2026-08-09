@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { incrRateLimit } from '../store/redis';
-import { config } from '../config';
-import { AuthenticatedRequest } from './auth';
+import { incrRateLimit } from '../store/redis.ts';
+import { config } from '../config.ts';
+import { AuthenticatedRequest } from './auth.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'rate-limit' });

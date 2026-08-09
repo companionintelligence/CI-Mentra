@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { normalizeResponsesRequestToCanonical, ResponsesRequest } from '../canonical/normalizer';
-import { resolveProvider } from '../providers';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { getOrCreateConversation, getConversationMessages, appendMessage } from '../store/postgres';
-import { CanonicalTurn, CanonicalMessage } from '../canonical/types';
-import { Provider } from '../providers/types';
+import { normalizeResponsesRequestToCanonical, ResponsesRequest } from '../canonical/normalizer.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { AuthenticatedRequest } from '../middleware/auth.ts';
+import { getOrCreateConversation, getConversationMessages, appendMessage } from '../store/postgres.ts';
+import { CanonicalTurn, CanonicalMessage } from '../canonical/types.ts';
+import { Provider } from '../providers/types.ts';
 import { v4 as uuidv4 } from 'uuid';
 import pino from 'pino';
 

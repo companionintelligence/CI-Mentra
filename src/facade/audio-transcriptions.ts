@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { resolveProvider } from '../providers';
-import { TranscriptionRequest } from '../providers/types';
-import { CanonicalTurn } from '../canonical/types';
+import { resolveProvider } from '../providers/index.ts';
+import { TranscriptionRequest } from '../providers/types.ts';
+import { CanonicalTurn } from '../canonical/types.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-transcriptions' });

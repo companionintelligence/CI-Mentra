@@ -1,4 +1,4 @@
-import { randomToken, type TokenSet, type UserClaims } from './oidc';
+import { randomToken, type TokenSet, type UserClaims } from './oidc.ts';
 
 /** Name of the signed cookie carrying the opaque session id. */
 export const SESSION_COOKIE = 'mentra_session';

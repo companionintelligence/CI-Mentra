@@ -1,10 +1,10 @@
 import { AppServer, AppSession } from '@mentra/sdk';
 import type { Capabilities } from '@mentra/sdk';
-import { config } from '../config';
-import { VadBuffer, UtteranceSegment } from '../voice/vad-buffer';
-import { transcribeAudio } from '../voice/stt';
-import { resolveProvider } from '../providers';
-import { normalizeChatCompletionToCanonical } from '../canonical/normalizer';
+import { config } from '../config.ts';
+import { VadBuffer, UtteranceSegment } from '../voice/vad-buffer.ts';
+import { transcribeAudio } from '../voice/stt.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { normalizeChatCompletionToCanonical } from '../canonical/normalizer.ts';
 import { v4 as uuidv4 } from 'uuid';
 import pino from 'pino';
 
@@ -88,7 +88,7 @@ export class MentraBridge extends AppServer {
     });
   }
 
-  protected async onSession(session: AppSession, sessionId: string, userId: string): Promise<void> {
+  protected override async onSession(session: AppSession, sessionId: string, userId: string): Promise<void> {
     logger.info({ sessionId, userId }, 'New Mentra session started');
 
     const conversationId = uuidv4();
@@ -295,7 +295,7 @@ export class MentraBridge extends AppServer {
     });
   }
 
-  protected async onStop(sessionId: string, userId: string, reason: string): Promise<void> {
+  protected override async onStop(sessionId: string, userId: string, reason: string): Promise<void> {
     logger.info({ sessionId, userId, reason }, 'Session stopped');
   }
 }

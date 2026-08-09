@@ -3,7 +3,7 @@ jest.mock('@mentra/sdk', () => ({
   AppSession: class {},
 }));
 
-import { selectBridgeLayout, truncateForGlass } from '../../bridge/mentra-bridge';
+import { selectBridgeLayout, truncateForGlass } from '../../bridge/mentra-bridge.ts';
 
 describe('Mentra bridge layout helpers', () => {
   it('uses a dashboard card when there is no active conversation text', () => {

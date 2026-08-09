@@ -1,4 +1,4 @@
-import { parseDotenv, applyHubEnv, applyHubInferenceBootstrap } from '../../hub/inference-bootstrap';
+import { parseDotenv, applyHubEnv, applyHubInferenceBootstrap } from '../../hub/inference-bootstrap.ts';
 
 const MANAGED_KEYS = [
   'OLLAMA_HOST',
