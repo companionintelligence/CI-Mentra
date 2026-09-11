@@ -1,3 +1,7 @@
+/* The Companion Intelligence canon (brand bundle, scripts/vendor-brand.sh). This app keeps its
+   own surface palette below; the accents map onto the canon primary. */
+@import url("brand/tokens/tokens.css");
+
 /* ==========================================================================
    Companion — wearable UI for the R1 ring + phone.
    Dark-first: this is glanced at in the dark, from a wrist or a pocket.
@@ -19,11 +23,11 @@
   --text-dim: #a8c3c0;
   --text-faint: #7a9895;
 
-  --accent: #5fbdc3;
-  --accent-soft: #abd4d8;
-  --accent-deep: #1f5f66;
-  --accent-glow: rgba(95, 189, 195, 0.22);
-  --accent-ink: #04100f;
+  --accent: #c5e8dc;         /* the canon dark primary (sage); was an ad-hoc #5fbdc3 */
+  --accent-soft: #72ddd4;    /* --aqua-light */
+  --accent-deep: #2c676d;    /* --teal-accent */
+  --accent-glow: rgba(197, 232, 220, 0.22);
+  --accent-ink: #041620;
 
   --danger: #ff9182;
   --danger-bg: rgba(255, 145, 130, 0.12);
@@ -61,10 +65,10 @@
     --text-dim: #3f5c5b;
     --text-faint: #64817f;
 
-    --accent: #0f717a;
-    --accent-soft: #0b5a62;
-    --accent-deep: #abd4d8;
-    --accent-glow: rgba(15, 113, 122, 0.18);
+    --accent: #0a6358;         /* the canon light primary (phthalo); was the RETIRED #0f717a */
+    --accent-soft: #0e4a52;    /* --teal-800 */
+    --accent-deep: #c5e8dc;
+    --accent-glow: rgba(10, 99, 88, 0.18);
     --accent-ink: #ffffff;
 
     --danger: #a52f1e;
