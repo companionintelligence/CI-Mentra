@@ -39,6 +39,50 @@ export function applyFacadeCors(app: express.Application): void {
   });
 }
 
+/** The hosted setup page (mentra.ci.computer) probes a bridge's /health from the browser. */
+export const DEFAULT_SETUP_ORIGINS = ['https://mentra.ci.computer'];
+
+export function parseSetupOrigins(raw: string | undefined): string[] {
+  if (raw === undefined) return DEFAULT_SETUP_ORIGINS;
+  return raw
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter((o) => /^https?:\/\/[^/\s]+$/i.test(o));
+}
+
+/**
+ * CORS for `GET /health` ONLY, and only for allowlisted origins.
+ *
+ * /health is unauthenticated and already readable by anything that can reach
+ * the port; this just lets the setup page at mentra.ci.computer show the result.
+ * An exact-origin allowlist (not `*`) keeps random sites from fingerprinting a
+ * wearer's bridge, and the cookie-authenticated `/api/*` surface is untouched.
+ * `Access-Control-Allow-Private-Network` lets Chrome's Private Network Access
+ * preflight through when the bridge lives on localhost or a LAN address.
+ */
+export function applySetupCors(app: express.Application, origins: string[]): void {
+  const allowed = new Set(origins);
+  app.use('/health', (req, res, next) => {
+    const origin = req.headers.origin;
+    if (!origin || !allowed.has(origin)) {
+      next();
+      return;
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      if (req.headers['access-control-request-private-network'] === 'true') {
+        res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      }
+      res.setHeader('Access-Control-Max-Age', '600');
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+}
+
 async function main(): Promise<void> {
   // Adopt CI-Hub inference credentials (Ollama + hermes/openclaw backend)
   // BEFORE `config` is evaluated, so discovered endpoints flow into config.
@@ -78,6 +122,7 @@ async function main(): Promise<void> {
   // CORS for webview origins — facade only; never on the cookie-authenticated
   // /api surface. See `applyFacadeCors`.
   applyFacadeCors(app);
+  applySetupCors(app, parseSetupOrigins(process.env.MENTRA_SETUP_ORIGINS));
 
   // CI-Portal OIDC login (Authorization Code + PKCE): /api/auth/{config,login,callback,logout,me}
   app.use('/api/auth', authRouter);
@@ -163,7 +208,7 @@ async function main(): Promise<void> {
 }
 
 // Only boot when executed as a program (`node dist/index.js` / `ts-node src/index.ts`).
-// Guarded so tests can import `applyFacadeCors` without starting servers.
+// Guarded so tests can import `applyFacadeCors` / `applySetupCors` without starting servers.
 if (require.main === module) {
   main().catch((err) => {
     console.error('Fatal error:', err);

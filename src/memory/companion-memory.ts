@@ -32,6 +32,15 @@ export interface RecallResult {
 }
 
 const MESSAGE_MAX_CHARS = 4000;
+/** CI-Server's recallSchema: `maxResults` is an integer in [1, 20]; anything else is a 400. */
+const RECALL_MIN = 1;
+const RECALL_MAX = 20;
+
+export function clampRecallCount(value: number | undefined, fallback: number): number {
+  const n = Number.isFinite(value) ? Math.floor(value as number) : Math.floor(fallback);
+  if (!Number.isFinite(n)) return 6;
+  return Math.min(RECALL_MAX, Math.max(RECALL_MIN, n));
+}
 
 function enabled(): boolean {
   return config.memory.enabled && Boolean(config.memory.apiKey);
@@ -96,7 +105,7 @@ export async function recall(query: string, maxResults?: number): Promise<Recall
   try {
     const resp = await client().post(memoryPath('recall'), {
       query: query.slice(0, 2000),
-      maxResults: maxResults ?? config.memory.recallMaxResults,
+      maxResults: clampRecallCount(maxResults, config.memory.recallMaxResults),
     });
     const data = resp.data as { resultCount?: unknown; results?: unknown[] };
     const resultCount =

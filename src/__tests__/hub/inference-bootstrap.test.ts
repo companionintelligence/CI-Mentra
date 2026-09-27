@@ -1,4 +1,4 @@
-import { parseDotenv, applyHubEnv, applyHubInferenceBootstrap } from '../../hub/inference-bootstrap';
+import { parseDotenv, applyHubEnv, applyHubInferenceBootstrap, resolveHubUrl } from '../../hub/inference-bootstrap';
 
 const MANAGED_KEYS = [
   'OLLAMA_HOST',
@@ -12,7 +12,7 @@ const MANAGED_KEYS = [
 ];
 
 function clearManaged() {
-  for (const key of [...MANAGED_KEYS, 'HUB_INFERENCE_BOOTSTRAP', 'HUB_APP_SLUG', 'CI_HUB_URL', 'OPENAI_API_BASE', 'OPENAI_API_KEY', 'DEFAULT_MODEL']) {
+  for (const key of [...MANAGED_KEYS, 'HUB_INFERENCE_BOOTSTRAP', 'HUB_APP_SLUG', 'CI_HUB_URL', 'HUB_URL', 'LLM_API_BASE', 'LLM_API_KEY', 'OPENAI_API_BASE', 'OPENAI_API_KEY', 'DEFAULT_MODEL']) {
     delete process.env[key];
   }
 }
@@ -81,12 +81,39 @@ describe('applyHubEnv', () => {
   });
 });
 
+describe('applyHubEnv (ci-mentra slug)', () => {
+  it('maps the LLM_* keys the Hub hands the ci-mentra app', () => {
+    const applied = applyHubEnv({
+      OLLAMA_HOST: 'http://host.docker.internal:11434',
+      LLM_API_BASE: 'http://host.docker.internal:11434/v1',
+      LLM_API_KEY: 'ollama',
+      LLM_DEFAULT_CHAT_MODEL: 'qwen3:8b',
+    });
+
+    expect(process.env.HERMES_OPENAI_BASE_URL).toBe('http://host.docker.internal:11434/v1');
+    expect(process.env.HERMES_OPENAI_API_KEY).toBe('ollama');
+    expect(process.env.HERMES_DEFAULT_MODEL).toBe('qwen3:8b');
+    expect(process.env.LLM_DEFAULT_CHAT_MODEL).toBe('qwen3:8b');
+    expect(applied).toEqual(expect.arrayContaining(['HERMES_OPENAI_BASE_URL', 'LLM_DEFAULT_CHAT_MODEL']));
+  });
+});
+
+describe('resolveHubUrl', () => {
+  it('prefers CI_HUB_URL, then the Hub-injected HUB_URL, then ci-hub:5002', () => {
+    expect(resolveHubUrl({})).toBe('http://ci-hub:5002');
+    expect(resolveHubUrl({ HUB_URL: 'http://ci-hub:5002/' })).toBe('http://ci-hub:5002');
+    expect(resolveHubUrl({ HUB_URL: 'ci-os-hub:5002' })).toBe('http://ci-os-hub:5002');
+    expect(resolveHubUrl({ HUB_URL: 'http://a', CI_HUB_URL: 'http://b:3000' })).toBe('http://b:3000');
+  });
+});
+
 describe('applyHubInferenceBootstrap', () => {
   it('is a no-op when HUB_INFERENCE_BOOTSTRAP is not set', async () => {
     const result = await applyHubInferenceBootstrap();
     expect(result.attempted).toBe(false);
     expect(result.applied).toBe(false);
-    expect(result.slug).toBe('hermes-agent');
+    expect(result.slug).toBe('ci-mentra');
+    expect(result.hubUrl).toBe('http://ci-hub:5002');
   });
 
   it('fails open when the Hub is unreachable', async () => {

@@ -19,7 +19,7 @@ const mockConfig = {
 };
 jest.mock('../../config', () => ({ config: mockConfig }));
 
-import { getContext, recall, writeTurn, writeMemory, isMemoryEnabled } from '../../memory/companion-memory';
+import { getContext, recall, writeTurn, writeMemory, isMemoryEnabled, clampRecallCount } from '../../memory/companion-memory';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -112,6 +112,21 @@ describe('recall', () => {
     mockPost.mockResolvedValue({ data: { block: '', resultCount: 0 } });
     await recall('q', 2);
     expect(mockPost).toHaveBeenCalledWith('/api/memory/recall', { query: 'q', maxResults: 2 });
+  });
+
+  it('clamps maxResults into CI-Server\'s 1–20 bound so recall never 400s', async () => {
+    mockPost.mockResolvedValue({ data: { block: '', resultCount: 0 } });
+    await recall('q', 50);
+    expect(mockPost).toHaveBeenLastCalledWith('/api/memory/recall', { query: 'q', maxResults: 20 });
+    await recall('q', 2.7);
+    expect(mockPost).toHaveBeenLastCalledWith('/api/memory/recall', { query: 'q', maxResults: 2 });
+  });
+
+  it('clampRecallCount falls back and bounds', () => {
+    expect(clampRecallCount(undefined, 6)).toBe(6);
+    expect(clampRecallCount(0, 6)).toBe(1);
+    expect(clampRecallCount(undefined, 99)).toBe(20);
+    expect(clampRecallCount(undefined, NaN)).toBe(6);
   });
 
   it('skips empty queries and fails open on error', async () => {

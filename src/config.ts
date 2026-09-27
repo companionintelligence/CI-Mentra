@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { DEFAULT_HUB_APP_SLUG, resolveHubUrl } from './hub/inference-bootstrap';
 dotenv.config();
 
 function normalizeBaseUrl(rawValue: string | undefined, fallback: string, defaultProtocol: 'http' | 'https' = 'https'): string {
@@ -163,9 +164,9 @@ export const config = {
    * standardized backend. Discovery is fail-open.
    */
   hub: {
-    url: normalizeBaseUrl(process.env.CI_HUB_URL, 'http://ci-os-hub:3000', 'http'),
-    // Which Hub app slug's inference credentials to adopt: hermes-agent | openclaw
-    appSlug: process.env.HUB_APP_SLUG || 'hermes-agent',
+    url: resolveHubUrl(),
+    // Which Hub app slug's inference credentials to adopt: ci-mentra | hermes-agent | openclaw
+    appSlug: process.env.HUB_APP_SLUG || DEFAULT_HUB_APP_SLUG,
     bootstrap: isTruthy(process.env.HUB_INFERENCE_BOOTSTRAP),
   },
   /**
@@ -178,6 +179,7 @@ export const config = {
     baseUrl: normalizeBaseUrl(process.env.CI_SERVER_URL, 'http://ci-server:8642', 'http'),
     apiKey: process.env.CI_SERVER_MEMORY_KEY || process.env.CI_SERVER_TOKEN || '',
     platform: process.env.MENTRA_MEMORY_PLATFORM || 'mentra',
+    // CI-Server's recallSchema accepts 1–20; clamped again per call in companion-memory.
     recallMaxResults: parseInt(process.env.MENTRA_MEMORY_RECALL_MAX || '6'),
     /**
      * Path prefix in front of `/memory/{context,recall,turn,write}`.
