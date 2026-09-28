@@ -58,7 +58,11 @@ const ollamaBaseUrl = stripOpenAiSuffix(
  */
 const hubBackendBaseUrl = stripOpenAiSuffix(
   normalizeBaseUrl(
-    process.env.HERMES_OPENAI_BASE_URL || process.env.OPENAI_API_BASE || process.env.HUB_LLM_BASE_URL,
+    process.env.HERMES_OPENAI_BASE_URL ||
+      process.env.OPENAI_API_BASE ||
+      process.env.HUB_LLM_BASE_URL ||
+      // Injected directly by the Hub for a marketplace install (hub_integration.inference).
+      process.env.LLM_API_BASE,
     '',
     'http'
   )
@@ -153,8 +157,9 @@ export const config = {
     // so we don't read the generic OPENAI_API_KEY here (that drives the openai provider).
     hermes: {
       baseUrl: hubBackendBaseUrl,
-      apiKey: process.env.HERMES_OPENAI_API_KEY || process.env.HUB_LLM_API_KEY || 'ollama',
-      defaultModel: process.env.HERMES_DEFAULT_MODEL || process.env.HUB_LLM_MODEL || '',
+      apiKey: process.env.HERMES_OPENAI_API_KEY || process.env.HUB_LLM_API_KEY || process.env.LLM_API_KEY || 'ollama',
+      defaultModel:
+        process.env.HERMES_DEFAULT_MODEL || process.env.HUB_LLM_MODEL || process.env.LLM_DEFAULT_CHAT_MODEL || '',
     },
   },
   /**

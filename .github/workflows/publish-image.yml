@@ -1,0 +1,67 @@
+name: Publish image
+
+# Builds the bridge container and pushes it to GHCR as
+# ghcr.io/companionintelligence/ci-mentra — the image the CI-Marketplace
+# `ci-mentra` listing installs. Release tags (v*) publish that version;
+# a manual dispatch publishes the current commit as sha-<short>.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/companionintelligence/ci-mentra
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Test before publishing
+        run: npm ci && npm run build && npx jest
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern=v{{version}}
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.title=CI-Mentra
+            org.opencontainers.image.description=Companion Intelligence bridge for Mentra smart glasses
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Digest for the marketplace listing
+        run: |
+          echo "### Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pin in CI-Marketplace apps/ci-mentra/docker-compose.json:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ env.IMAGE }}:${{ steps.meta.outputs.version }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

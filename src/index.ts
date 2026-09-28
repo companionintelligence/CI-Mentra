@@ -100,6 +100,10 @@ async function main(): Promise<void> {
   const { companionRouter } = await import('./api/companion');
   const { MentraBridge } = await import('./bridge/mentra-bridge');
   const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk');
+  const { ensureSchema } = await import('./store/postgres');
+
+  // Create tables on a bare Postgres (Hub installs have no initdb mount). Fail-open.
+  await ensureSchema();
 
   const localBluetoothRuntimeInfo =
     config.runtime.mode === 'bluetooth-local'
