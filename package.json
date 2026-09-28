@@ -5,10 +5,14 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/store/schema.sql dist/store/schema.sql",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "test": "jest"
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "dev:companion": "MENTRA_DEV_ALLOW_ANONYMOUS=true FACADE_PORT=8092 node --experimental-strip-types src/index.ts",
+    "test": "jest",
+    "site:build": "scripts/build-site.sh",
+    "site:dev": "npm run site:build && npx --yes wrangler@4 dev --config site/wrangler.jsonc",
+    "site:deploy": "npm run site:build && npx --yes wrangler@4 deploy --config site/wrangler.jsonc"
   },
   "dependencies": {
     "@mentra/sdk": "^2.1.29",
@@ -42,5 +46,8 @@
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

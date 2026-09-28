@@ -5,28 +5,31 @@ Mentra Glass Live App
 
 The service runs on either [Deno](https://deno.com) (2.9+, preferred; used by
 the Dockerfile) or Node.js 20+. Source is real ESM (`"type": "module"` +
-`module: NodeNext` in `tsconfig.json`); Deno resolves npm dependencies
-directly via `deno.json`'s `nodeModulesDir: "auto"`.
+`module: NodeNext` + `verbatimModuleSyntax` in `tsconfig.json`): relative
+imports carry explicit `.ts` extensions and type-only imports are marked
+`type`, so the same files run unbundled under Deno and Node's type stripping.
+Deno resolves npm dependencies directly via `deno.json`'s `nodeModulesDir: "auto"`.
 
 ```bash
 # Deno
 deno task dev     # deno run -A --watch src/index.ts
-deno task test    # deno test -A src/__tests__/  (see "Testing" note below)
+deno task test    # runs the Jest suite (see "Testing" note below)
 deno task build   # deno check src/index.ts (type-check)
 deno task lint
 
 # Node (unchanged)
 npm install
-npm run dev       # ts-node src/index.ts
+npm run dev       # node --watch --experimental-strip-types src/index.ts (Node 22.6+)
 npm test          # jest
-npm run build     # tsc -> dist/
+npm run build     # tsc -> dist/ (plus dist/store/schema.sql)
+npm start         # node dist/index.js
 ```
 
 **Testing note:** the existing test suite uses `jest.mock()` for module
 mocking, which Deno's test runner has no equivalent for (Deno's ES module
 records are immutable, so modules can't be monkey-patched the way Jest does).
-`deno task test` / `deno test` will fail against these Jest-style specs as a
-result — `npm test` (Jest) remains the supported way to run this suite today.
+Plain `deno test` therefore can't run these specs, so `deno task test`
+delegates to Jest (`npm test`), which is the supported way to run the suite.
 
 ## Companion Intelligence integration
 
@@ -94,14 +97,211 @@ chat model comes from `LLM_DEFAULT_CHAT_MODEL`.
 
 ### 3. Backend hermes / openclaw server on CI-Hub
 
-The CI-Hub does not proxy inference; it hands each marketplace app (slug
-`hermes-agent` / `openclaw`) an OpenAI-compatible endpoint. CI-Mentra exposes a
-**`hermes` provider** for that backend. Configure it directly with
-`HERMES_OPENAI_BASE_URL` / `HERMES_OPENAI_API_KEY` / `HERMES_DEFAULT_MODEL`, or
-set `HUB_INFERENCE_BOOTSTRAP=true` to auto-discover credentials at startup from
-`GET ${CI_HUB_URL}/api/inference/apps/${HUB_APP_SLUG}/bootstrap.env` (fail-open).
+The CI-Hub does not proxy inference; it hands each marketplace app an
+OpenAI-compatible endpoint. CI-Mentra exposes a **`hermes` provider** for that
+backend. Configure it directly with `HERMES_OPENAI_BASE_URL` /
+`HERMES_OPENAI_API_KEY` / `HERMES_DEFAULT_MODEL`, or set
+`HUB_INFERENCE_BOOTSTRAP=true` to auto-discover credentials at startup from
+`GET ${hub}/api/inference/apps/${HUB_APP_SLUG}/bootstrap.env` (fail-open).
 Route a request to it by setting `DEFAULT_PROVIDER=hermes`, or per-request with a
 `hermes:` / `openclaw:` model prefix (e.g. `hermes:gemma4:latest`).
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `CI_HUB_URL` | Hub origin; falls back to the Hub-injected `HUB_URL` | `http://ci-hub:5002` |
+| `HUB_APP_SLUG` | Which app's handout to fetch | `ci-mentra` |
+
+The Hub answers `bootstrap.env` **only to a container it installed under that
+slug's app name** (its `AppContainerOriginGuard`), so a Hub-installed CI-Mentra
+uses its own `ci-mentra` slug, which hands out `LLM_API_BASE` / `LLM_API_KEY` /
+`LLM_DEFAULT_CHAT_MODEL` plus `OLLAMA_HOST`. That slug needs a CI-Hub release that
+includes it; older Hubs answer 403 and CI-Mentra keeps its configured endpoints.
+Production Hubs listen on `5002` (container `ci-hub`, alias `ci-os-hub`); `3000`
+is only the source-dev default.
+
+**Marketplace manifest.** The CI-Marketplace listing for `ci-mentra` should
+declare the Hub integrations so the Hub injects inference and memory env at
+install time, with no bootstrap call needed:
+
+```json
+"hub_integration": {
+  "inference": {
+    "llm_base_url": "LLM_API_BASE",
+    "llm_api_key": "LLM_API_KEY",
+    "chat_model": "LLM_DEFAULT_CHAT_MODEL",
+    "ollama_host": "OLLAMA_HOST"
+  },
+  "memory": { "url_env": "CI_SERVER_URL", "token_env": "CI_SERVER_TOKEN", "url_style": "origin" }
+}
+```
+
+With the memory mapping, the Hub's connect flow mints a **memory-scoped**
+CI-Server key for `ci-mentra` (CI-Server's `ConnectService` scopes it to
+`memory`) and injects it as `CI_SERVER_TOKEN`, which §4 already reads. With
+`url_style: origin`, set `CI_SERVER_MEMORY_PATH_PREFIX` to match what that origin
+serves (see §4).
+
+### 4. Companion Memory (CI-Server)
+
+This is what makes the glasses answer *as your companion* rather than as a generic
+chatbot: CI-Server is the memory brain, and CI-Mentra reads and writes it on every
+utterance — the same integration the Hermes / OpenClaw plugins use.
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `MENTRA_MEMORY_ENABLED` | Enable Companion Memory | `false` |
+| `CI_SERVER_URL` | CI-Server origin | `http://ci-server:8642` |
+| `CI_SERVER_MEMORY_PATH_PREFIX` | Path prefix in front of `/memory/*` (see below) | `/api` |
+| `CI_SERVER_MEMORY_KEY` | Memory-scoped CI-Server API key (falls back to `CI_SERVER_TOKEN`) | _(empty)_ |
+| `MENTRA_MEMORY_PLATFORM` | Tags memories/turns written by this device | `mentra` |
+| `MENTRA_MEMORY_RECALL_MAX` | Recall hits pulled into the prompt per utterance (clamped to CI-Server's 1–20) | `6` |
+
+> **The memory API is _not_ Portal-OIDC authenticated.** CI-Server's `/memory/*`
+> routes are `ApiKeyGuard`-only and expect an **`x-api-key`** header carrying a
+> **memory-scoped CI-Server API key** — *not* a CI-Portal bearer token. Issue one
+> from CI-Server exactly as you would for the Hermes/OpenClaw `CI_SERVER_TOKEN`.
+> Portal OIDC (§1) authenticates the *wearer* to CI-Mentra; this key authenticates
+> *CI-Mentra* to CI-Server. They are separate credentials.
+
+> **`CI_SERVER_MEMORY_PATH_PREFIX` depends on what `CI_SERVER_URL` points at.**
+> CI-Server's NestJS app has no `/api` prefix of its own — its `MemoryController`
+> mounts bare at `/memory`. The `/api` prefix exists only on the gateway/reverse-proxy
+> in front of it. So: pointed at the gateway or a Hub-fronted origin (the normal
+> case) → keep the default `/api`; pointed directly at the raw CI-Server API
+> container, bypassing any gateway → set it to `` (empty).
+
+The loop, per session and per utterance (paths shown with the default `/api` prefix):
+
+| Call | When | Purpose |
+|------|------|---------|
+| `GET /api/memory/context` | Once per session (cached 10 min) | L0 profile block prepended to the system prompt |
+| `POST /api/memory/recall` | Every utterance | Hybrid pgvector RAG; returns a prompt block of relevant memories |
+| `POST /api/memory/turn` | After every exchange | Persists the turn (idempotent server-side) |
+| `POST /api/memory/write` | On "remember this…" | Stores a durable memory fragment |
+
+Response parsing is tolerant of minor CI-Server surface drift: it reads `block`,
+falling back to `context`, falling back to joining `results[].text/content/summary`.
+
+`MENTRA_MEMORY_ENABLED=true` **and** a non-empty key are both required — either
+missing and memory stays off. **Every call is fail-open:** if CI-Server is
+unreachable, slow, or erroring, the assistant still answers, just without memory
+(context/recall degrade to empty blocks, writes are dropped with a log line). The
+glasses never go silent because the memory brain is down. `GET /health` reports
+`memory.enabled` so you can tell "off" from "misconfigured".
+
+### 5. Assistant persona + short-term memory
+
+Long-term memory (§4) is CI-Server's job; **short-term memory is local** — a rolling
+in-process window of the last N exchanges per session, which is what keeps follow-ups
+("what about tomorrow?") coherent.
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `MENTRA_PERSONA` | System prompt for the companion | _(warm, concise glasses assistant; 1–3 sentence replies)_ |
+| `MENTRA_LANGUAGE` | Assistant language tag | `en-US` |
+| `MENTRA_MAX_HISTORY_TURNS` | Rolling in-session window, in exchanges | `8` |
+
+The composed system prompt is `persona` + profile context + recall block. Keep the
+persona's replies short: they are spoken aloud through the glasses.
+
+## Companion UI
+
+A static app served at the **site root** (`/`) of the façade port — one build that
+works from a phone and from an R1 ring. It talks only to the Companion BFF below, so
+it holds no credentials: the `mentra_session` cookie from §1B is the whole story. If
+you are not signed in it shows a login gate pointing at `/api/auth/login`.
+
+**Ring key map.** The R1 has no pointer, so the UI is a focus-ring app: everything is
+reachable by arrow keys and confirmed with one button.
+
+| Input | Action |
+|-------|--------|
+| `ArrowUp` / `ArrowDown` | Move focus between controls |
+| `ArrowLeft` / `ArrowRight` | Move focus within a row / scrub a list |
+| `Enter` or `Space` (tap) | Activate the focused control |
+| `Space` (hold) | Push-to-talk — records while held, sends on release |
+| `Escape` | Dismiss / back out to the previous view |
+
+Touch works the same way on a phone; no key map required.
+
+### Companion BFF API
+
+Mounted at `/api/companion`, JSON in / JSON out, guarded by the same credentials as
+the façade (OIDC session cookie, Portal bearer, or `FACADE_API_KEY`).
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/companion/status` | Auth state, user, memory/provider/model, `loginUrl` — **200 even when signed out**, so the UI can render the login gate |
+| `POST /api/companion/ask` | The main loop: recall → answer → persist the turn |
+| `POST /api/companion/memory/search` | Query long-term memory directly (`/api/memory/recall` passthrough) |
+| `POST /api/companion/memory/remember` | Save a durable memory fragment |
+| `GET /api/companion/profile` | The L0 profile/context block for this wearer |
+| `GET /api/companion/history` | The rolling short-term history for a `sessionId` |
+
+`GET /health` reports `companionUi.path` and `companionUi.devAnonymous`.
+
+### Dev-only: anonymous access
+
+`MENTRA_DEV_ALLOW_ANONYMOUS=true` lets the companion UI and BFF work with no login —
+useful for iterating on the UI before a `ci-mentra` client is registered in CI-Portal.
+
+> ⚠️ **Never enable this in production.** It exposes `/api/companion` — and therefore
+> the wearer's memory — to any unauthenticated caller that can reach the port.
+
+## Hosted setup + demo: mentra.ci.computer
+
+`site/` is a Cloudflare Worker with static assets that serves:
+
+| Path | What |
+|------|------|
+| `/` | Setup guide. Builds your `.env` **in the browser** (nothing is sent anywhere), gives run commands per deployment mode, and checks a bridge's `/health` |
+| `/app/` | The companion UI from `public/`, copied verbatim, running against a canned **demo BFF** (`site/src/demo.ts`). It stores nothing and never proxies to a real bridge |
+| `/api/*` | That demo BFF |
+| `/healthz` | Site liveness |
+
+```bash
+npm run site:build    # assemble site/dist (site/public + public/ as /app)
+npm run site:dev      # wrangler dev on :8787
+npm run site:deploy   # wrangler deploy to mentra.ci.computer (custom domain route)
+npx jest site         # worker, demo BFF and env-builder tests
+```
+
+`.github/workflows/deploy-site.yml` deploys on pushes to `main` that touch `site/`,
+`public/` or the build script, and on manual dispatch. It needs the repo secrets
+`CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, plus Workers Routes: Edit on the
+`ci.computer` zone) and `CLOUDFLARE_ACCOUNT_ID`, set on the `production` environment.
+
+**Bridge check.** The setup page reads `GET /health` on the wearer's bridge from the
+browser. The bridge allows that cross-origin read only for `MENTRA_SETUP_ORIGINS`
+(default `https://mentra.ci.computer`; empty disables it). It answers Chrome's
+Private Network Access preflight too, so `http://localhost:8080` works. Only
+`/health` gets the header; the cookie-authenticated `/api/*` surface stays
+same-origin.
+
+## Container image
+
+`docker compose up -d --build` builds a `denoland/deno:alpine` image that runs
+`src/index.ts` directly. `deno check` runs at build time as the type-check
+gate, and the image ships `public/` (the companion UI) and `app_config.json`.
+It runs as the unprivileged `deno` user and has a `HEALTHCHECK` on `/health`.
+
+On boot the bridge applies `src/store/schema.sql` (all `IF NOT EXISTS`) to
+`DATABASE_URL`, so it works against a bare Postgres such as a Hub install, not
+only the repo's compose with its initdb mount. It is fail-open: without a
+database only `/v1/responses` degrades.
+
+**Published image.** `.github/workflows/publish-image.yml` builds `linux/amd64`
+and `linux/arm64` and pushes `ghcr.io/companionintelligence/ci-mentra` on `v*`
+tags (as that version) and on manual dispatch (as `sha-<short>`). The run
+summary prints the `tag@sha256:` reference to pin in the CI-Marketplace
+`ci-mentra` listing, which stays hidden (quarantined) until that image exists.
+
+## MentraOS manifest (`app_config.json`)
+
+`app_config.json` is the **MentraOS manifest**: it declares the wearer-facing settings
+that MentraOS renders in its own app settings UI, and the voice tools the glasses can
+invoke. MentraOS reads it — changing a setting or tool here changes what the wearer
+sees and can say, so keep it in sync with the env vars above.
 
 ## Runtime modes
 

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
-  CanonicalTurn, CanonicalMessage, ToolSchema, GenerationParams, StreamingMode, OutputMode,
+  type CanonicalTurn, type CanonicalMessage, type ToolSchema, type GenerationParams, type StreamingMode, type OutputMode,
 } from './types.ts';
 
 export interface ChatCompletionRequest {

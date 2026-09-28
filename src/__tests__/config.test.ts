@@ -81,6 +81,21 @@ describe('config', () => {
     expect(config.providers.hermes.baseUrl).toBe('http://hermes-gateway:8642');
   });
 
+  it('points the hermes provider at the Hub-injected LLM_* vars of a marketplace install', async () => {
+    for (const key of ['HERMES_OPENAI_BASE_URL', 'OPENAI_API_BASE', 'HUB_LLM_BASE_URL', 'HERMES_OPENAI_API_KEY', 'HUB_LLM_API_KEY', 'HERMES_DEFAULT_MODEL', 'HUB_LLM_MODEL']) {
+      delete process.env[key];
+    }
+    process.env.LLM_API_BASE = 'http://vllm:8000/v1';
+    process.env.LLM_API_KEY = 'hub-key';
+    process.env.LLM_DEFAULT_CHAT_MODEL = 'qwen3:8b';
+
+    const { config } = await import('../config.ts');
+
+    expect(config.providers.hermes.baseUrl).toBe('http://vllm:8000');
+    expect(config.providers.hermes.apiKey).toBe('hub-key');
+    expect(config.providers.hermes.defaultModel).toBe('qwen3:8b');
+  });
+
   it('parses Portal OIDC config and defaults hub settings', async () => {
     delete process.env.PORTAL_OIDC_ENABLED;
     process.env.PORTAL_OIDC_AUDIENCE = 'ci-mentra, ci-server ,, ci-hub';
@@ -92,8 +107,8 @@ describe('config', () => {
     expect(config.auth.portal.issuer).toBe('https://hub.companionintelligence.com');
     expect(config.auth.portal.jwksUri).toBe('https://hub.companionintelligence.com/api/auth/jwks');
     expect(config.auth.portal.audience).toEqual(['ci-mentra', 'ci-server', 'ci-hub']);
-    expect(config.hub.appSlug).toBe('hermes-agent');
-    expect(config.hub.url).toBe('http://ci-os-hub:3000');
+    expect(config.hub.appSlug).toBe('ci-mentra');
+    expect(config.hub.url).toBe('http://ci-hub:5002');
   });
 
   it('enables Portal OIDC when PORTAL_OIDC_ENABLED is truthy', async () => {
@@ -121,5 +136,45 @@ describe('config', () => {
     const { config } = await import('../config.ts');
     expect(config.auth.oidc.enabled).toBe(true);
     expect(config.auth.oidc.clientId).toBe('ci-import-tools');
+  });
+
+  describe('owner allowlist (MENTRA_ALLOWED_USERS)', () => {
+    it('defaults to an empty list (single-user appliance)', async () => {
+      delete process.env.MENTRA_ALLOWED_USERS;
+      const { config } = await import('../config.ts');
+      expect(config.auth.owners).toEqual([]);
+    });
+
+    it('parses a comma-separated list, trimming and lowercasing entries', async () => {
+      process.env.MENTRA_ALLOWED_USERS = ' Liam@Example.com , wearer@example.com ';
+      const { config } = await import('../config.ts');
+      expect(config.auth.owners).toEqual(['liam@example.com', 'wearer@example.com']);
+    });
+
+    it('drops empty entries so a stray comma can never mean "allow everyone"', async () => {
+      process.env.MENTRA_ALLOWED_USERS = 'liam@example.com,,   ,';
+      const { config } = await import('../config.ts');
+      expect(config.auth.owners).toEqual(['liam@example.com']);
+    });
+
+    it('accepts an OIDC subject as well as an email', async () => {
+      process.env.MENTRA_ALLOWED_USERS = 'user_01HXYZ';
+      const { config } = await import('../config.ts');
+      expect(config.auth.owners).toEqual(['user_01hxyz']);
+    });
+  });
+
+  describe('Companion Memory path prefix (CI_SERVER_MEMORY_PATH_PREFIX)', () => {
+    it('defaults to /api (the gateway/Hub-fronted topology)', async () => {
+      delete process.env.CI_SERVER_MEMORY_PATH_PREFIX;
+      const { config } = await import('../config.ts');
+      expect(config.memory.pathPrefix).toBe('/api');
+    });
+
+    it('supports an empty prefix for a direct-to-API topology', async () => {
+      process.env.CI_SERVER_MEMORY_PATH_PREFIX = '';
+      const { config } = await import('../config.ts');
+      expect(config.memory.pathPrefix).toBe('');
+    });
   });
 });

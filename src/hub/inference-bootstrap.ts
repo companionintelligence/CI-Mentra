@@ -62,6 +62,7 @@ function setIfAbsent(key: string, value: string | undefined, applied: string[]):
  * Map the Hub's per-slug bootstrap.env into the canonical vars this app reads.
  *
  * The Hub hands out different key names per app slug:
+ *   - ci-mentra    → LLM_API_BASE / LLM_API_KEY / LLM_DEFAULT_CHAT_MODEL
  *   - hermes-agent → HERMES_OPENAI_BASE_URL / HERMES_OPENAI_API_KEY / HERMES_DEFAULT_MODEL
  *   - openclaw     → OPENAI_API_BASE / OPENAI_API_KEY / DEFAULT_MODEL
  *   - both         → OLLAMA_HOST (native Ollama base URL)
@@ -101,19 +102,33 @@ export function applyHubEnv(hubEnv: Record<string, string>): string[] {
   return applied;
 }
 
+/** Production Hub: container `ci-hub` (alias `ci-os-hub`), API on 5002. */
+export const DEFAULT_HUB_URL = 'http://ci-hub:5002';
+/** CI-Mentra's own marketplace slug; the Hub only answers a container installed under it. */
+export const DEFAULT_HUB_APP_SLUG = 'ci-mentra';
+
+/**
+ * Resolve the Hub origin: explicit `CI_HUB_URL` wins, then the `HUB_URL` the
+ * Hub injects into the apps it manages, then the production default.
+ */
+export function resolveHubUrl(env: NodeJS.ProcessEnv = process.env): string {
+  return normalizeBaseUrl(env.CI_HUB_URL) || normalizeBaseUrl(env.HUB_URL) || DEFAULT_HUB_URL;
+}
+
 /**
  * Fetch this app's inference credentials from the CI-Hub and apply them to the
  * process environment before `config` is evaluated. Fail-open: any error (Hub
  * unreachable, 403 outside the internal network, timeout) is logged and
  * ignored so the app still starts with its configured/default endpoints.
  *
- * Enabled by `HUB_INFERENCE_BOOTSTRAP=true`. Uses `CI_HUB_URL`
- * (default `http://ci-os-hub:3000`) and `HUB_APP_SLUG`
- * (default `hermes-agent`; also `openclaw`).
+ * Enabled by `HUB_INFERENCE_BOOTSTRAP=true`. Uses `resolveHubUrl()` and
+ * `HUB_APP_SLUG` (default `ci-mentra`; `hermes-agent` / `openclaw` work only
+ * when this container is installed under that app's name — the Hub's
+ * AppContainerOriginGuard answers a slug only to its own containers).
  */
 export async function applyHubInferenceBootstrap(): Promise<HubBootstrapResult> {
-  const slug = process.env.HUB_APP_SLUG || 'hermes-agent';
-  const hubUrl = normalizeBaseUrl(process.env.CI_HUB_URL) || 'http://ci-os-hub:3000';
+  const slug = process.env.HUB_APP_SLUG || DEFAULT_HUB_APP_SLUG;
+  const hubUrl = resolveHubUrl();
 
   if (!isTruthy(process.env.HUB_INFERENCE_BOOTSTRAP)) {
     return { attempted: false, applied: false, slug, hubUrl, keys: [], reason: 'disabled' };
@@ -129,6 +144,9 @@ export async function applyHubInferenceBootstrap(): Promise<HubBootstrapResult> 
     });
     const hubEnv = parseDotenv(typeof resp.data === 'string' ? resp.data : String(resp.data));
     const keys = applyHubEnv(hubEnv);
+    if (hubEnv.CI_INFERENCE_ERROR) {
+      logger.warn({ slug, error: hubEnv.CI_INFERENCE_ERROR }, 'CI-Hub reports no suitable inference model for this app');
+    }
     logger.info({ slug, hubUrl, keys }, 'Applied CI-Hub inference credentials');
     return { attempted: true, applied: keys.length > 0, slug, hubUrl, keys };
   } catch (err) {

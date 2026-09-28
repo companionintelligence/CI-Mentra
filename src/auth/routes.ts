@@ -72,10 +72,21 @@ function redirectUriFor(req: Request): string {
   return `${proto}://${host}/api/auth/callback`;
 }
 
-/** Only allow same-site relative return paths, never an open redirect. */
-function safeReturnTo(raw: unknown): string {
+/**
+ * Only allow same-site relative return paths, never an open redirect.
+ *
+ * A leading `//` (or `/\`, which browsers normalize to `//`) makes the URL
+ * protocol-relative — `/\evil.com` would send the wearer off-site after login.
+ * Require a single `/` followed by something that is neither a slash nor a
+ * backslash, and reject control characters that could smuggle a second header.
+ */
+const CONTROL_CHARS = new RegExp('[\\u0000-\\u001f\\u007f]');
+
+export function safeReturnTo(raw: unknown): string {
   const value = typeof raw === 'string' ? raw : '';
-  return value.startsWith('/') && !value.startsWith('//') ? value : '/';
+  if (!/^\/($|[^/\\])/.test(value)) return '/';
+  if (CONTROL_CHARS.test(value)) return '/';
+  return value;
 }
 
 function sessionIdFrom(req: Request): string | undefined {
@@ -86,7 +97,7 @@ function fail(res: Response, message: string, status = 400): void {
   res.status(status).type('text/plain').send(`Login failed: ${message}`);
 }
 
-export const authRouter = Router();
+export const authRouter: Router = Router();
 
 // Public: lets a UI discover whether login is available and where to start it.
 authRouter.get('/config', (_req, res) => {

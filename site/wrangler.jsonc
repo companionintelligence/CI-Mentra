@@ -1,0 +1,20 @@
+// mentra.ci.computer — setup guide + hosted companion UI demo.
+// Build: npm run site:build   Local: npm run site:dev   Deploy: npm run site:deploy
+// Deploy needs CLOUDFLARE_API_TOKEN (Workers Scripts:Edit + Workers Routes:Edit
+// on the ci.computer zone) and CLOUDFLARE_ACCOUNT_ID.
+{
+  "$schema": "https://unpkg.com/wrangler@4/config-schema.json",
+  "name": "ci-mentra-site",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "routes": [{ "pattern": "mentra.ci.computer", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "vars": { "SITE_VERSION": "dev" }
+}

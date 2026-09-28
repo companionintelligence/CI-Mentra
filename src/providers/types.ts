@@ -1,5 +1,5 @@
 import type { CanonicalTurn } from '../canonical/types.ts';
-import { Response } from 'express';
+import { type Response } from 'express';
 
 export interface ProviderChatRequest {
   model: string;

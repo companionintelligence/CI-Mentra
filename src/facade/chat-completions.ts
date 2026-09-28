@@ -1,12 +1,12 @@
-import { Router, Request, Response } from 'express';
-import { normalizeChatCompletionToCanonical, ChatCompletionRequest } from '../canonical/normalizer.ts';
+import { Router, type Request, type Response } from 'express';
+import { normalizeChatCompletionToCanonical, type ChatCompletionRequest } from '../canonical/normalizer.ts';
 import { resolveProvider } from '../providers/index.ts';
-import { AuthenticatedRequest } from '../middleware/auth.ts';
+import { type AuthenticatedRequest } from '../middleware/auth.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-chat' });
 
-export const chatCompletionsRouter = Router();
+export const chatCompletionsRouter: Router = Router();
 
 chatCompletionsRouter.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1312" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f1f7f6" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Companion — a voice-first personal assistant with memory, built for the R1 ring and phone.">
+<title>Companion</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='none' stroke='%235fbdc3' stroke-width='3'/><circle cx='16' cy='16' r='4.5' fill='%235fbdc3'/></svg>">
+</head>
+<body>
+
+<!-- ===================== Boot / fatal states ===================== -->
+<div id="boot" class="screen">
+  <div class="pulse-mark" aria-hidden="true"></div>
+  <p class="screen__note">Waking your companion…</p>
+</div>
+
+<div id="fatal" class="screen" hidden>
+  <h1 class="screen__title">Can't reach the companion</h1>
+  <p class="screen__note" id="fatal-note">This device isn't answering right now.</p>
+  <button type="button" class="btn btn--primary" data-ring id="fatal-retry">Try again</button>
+</div>
+
+<!-- ===================== Sign-in gate ===================== -->
+<div id="gate" class="screen" hidden>
+  <div class="mark" aria-hidden="true">
+    <svg viewBox="0 0 64 64" width="64" height="64" focusable="false">
+      <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="4" opacity=".35"/>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="4"
+              stroke-linecap="round" stroke-dasharray="40 123" transform="rotate(-90 32 32)"/>
+      <circle cx="32" cy="32" r="9" fill="currentColor"/>
+    </svg>
+  </div>
+  <h1 class="screen__title">Companion</h1>
+  <p class="screen__note" id="gate-note">Sign in to reach your memory.</p>
+  <a class="btn btn--primary btn--xl" data-ring id="gate-signin" href="/api/auth/login?return_to=%2F">Sign in</a>
+  <p class="screen__fine" id="gate-fine"></p>
+</div>
+
+<!-- ===================== App ===================== -->
+<div id="app" class="app" hidden>
+
+  <header class="appbar" id="appbar">
+    <div class="appbar__brand">
+      <span class="appbar__mark" id="appbar-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" focusable="false">
+          <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2" opacity=".4"/>
+          <circle cx="12" cy="12" r="3.6" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="appbar__name">Companion</span>
+    </div>
+    <p class="appbar__user" id="appbar-user"></p>
+    <button type="button" class="iconbtn" data-ring id="help-open" aria-label="Ring controls and help" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M9.4 9.3a2.7 2.7 0 1 1 3.4 2.6c-.6.2-.9.7-.9 1.3v.5" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="12" cy="17" r="1.1" fill="currentColor"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- The live region is never hidden and never removed: text set on a hidden
+       aria-live region is never announced. Only the message inside it comes and
+       goes — that IS a live-region mutation. Empty, this box has no size. -->
+  <div class="errorline" id="errorline" role="status"></div>
+
+  <main class="views" id="views">
+
+    <!-- ---------- TALK ---------- -->
+    <section class="view" id="view-talk" data-view="talk" role="tabpanel"
+             aria-labelledby="talk-title">
+      <h1 class="view__title" id="talk-title">Talk</h1>
+
+      <div class="stage">
+        <p class="transcript" id="transcript" data-empty="true">Hold the button and speak.</p>
+        <div class="answer" id="answer" role="region" aria-live="polite" aria-atomic="false"
+             aria-label="Companion's answer" aria-busy="false">
+          <p class="answer__idle">Ask about your day, your notes, anything you've told me.</p>
+        </div>
+        <div class="thinking" id="thinking" hidden>
+          <span class="thinking__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>Thinking…</span>
+        </div>
+        <ul class="chips" id="chips" aria-label="Memory used for this answer"></ul>
+      </div>
+
+      <div class="micwrap">
+        <button type="button" class="mic" id="mic" data-ring aria-pressed="false"
+                aria-describedby="mic-hint" aria-label="Hold to talk">
+          <span class="mic__halo" aria-hidden="true"></span>
+          <svg class="mic__icon" viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" focusable="false">
+            <rect x="9" y="2.5" width="6" height="11.5" rx="3" fill="currentColor"/>
+            <path d="M5.5 11.2a6.5 6.5 0 0 0 13 0" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round"/>
+            <path d="M12 17.8V21.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <p class="hint" id="mic-hint">Hold to talk · release to send</p>
+      </div>
+
+      <form class="composer" id="ask-form" autocomplete="off">
+        <label class="sr-only" for="ask-input">Type a message to your companion</label>
+        <input class="field composer__field" id="ask-input" data-ring type="text"
+               placeholder="Or type it here…" enterkeyhint="send" autocapitalize="sentences">
+        <button type="submit" class="btn btn--primary composer__send" data-ring id="ask-send">Send</button>
+      </form>
+
+      <div class="row">
+        <button type="button" class="btn btn--ghost" data-ring id="voice-toggle" aria-pressed="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path d="M4 9.5h3.2L12 5.4v13.2L7.2 14.5H4z" fill="currentColor"/>
+            <path class="voice-on" d="M15.6 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8" fill="none"
+                  stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+            <path class="voice-off" d="M16.2 9.8l5 4.4M21.2 9.8l-5 4.4" fill="none" stroke="currentColor"
+                  stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+          <span id="voice-toggle-label">Voice on</span>
+        </button>
+        <button type="button" class="btn btn--ghost" data-ring id="talk-reset">New topic</button>
+      </div>
+    </section>
+
+    <!-- ---------- MEMORY ---------- -->
+    <section class="view" id="view-memory" data-view="memory" role="tabpanel"
+             aria-labelledby="memory-title" hidden>
+      <h1 class="view__title" id="memory-title">Memory</h1>
+
+      <form class="composer" id="search-form" autocomplete="off">
+        <label class="sr-only" for="search-input">Search your memory</label>
+        <input class="field composer__field" id="search-input" data-ring type="search"
+               placeholder="Search your memory…" enterkeyhint="search">
+        <button type="submit" class="btn btn--primary composer__send" data-ring id="search-send">Search</button>
+      </form>
+
+      <div class="panel">
+        <div class="block" id="search-results" aria-live="polite" aria-busy="false">
+          <p class="block__idle">Search anything you've told your companion.</p>
+        </div>
+      </div>
+
+      <section class="panel" aria-labelledby="remember-title">
+        <h2 class="panel__title" id="remember-title">Remember this…</h2>
+        <label class="sr-only" for="remember-title-input">Title (optional)</label>
+        <input class="field" id="remember-title-input" data-ring type="text" placeholder="Title (optional)">
+        <label class="sr-only" for="remember-input">What should I remember?</label>
+        <textarea class="field field--area" id="remember-input" data-ring rows="3"
+                  placeholder="Anything worth keeping — a fact, a preference, a promise."></textarea>
+        <button type="button" class="btn btn--primary btn--wide" data-ring id="remember-send">Save to memory</button>
+        <p class="hint" id="remember-status" role="status"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="history-title">
+        <div class="panel__head">
+          <h2 class="panel__title" id="history-title">This session</h2>
+          <button type="button" class="btn btn--ghost btn--sm" data-ring id="history-refresh">Refresh</button>
+        </div>
+        <ol class="history" id="history-list" aria-live="polite">
+          <li class="history__empty">Nothing said yet.</li>
+        </ol>
+      </section>
+    </section>
+
+    <!-- ---------- PROFILE ---------- -->
+    <section class="view" id="view-profile" data-view="profile" role="tabpanel"
+             aria-labelledby="profile-title" hidden>
+      <h1 class="view__title" id="profile-title">Profile</h1>
+
+      <div class="panel">
+        <div class="block" id="profile-block" aria-live="polite" aria-busy="false">
+          <p class="block__idle">Loading your profile…</p>
+        </div>
+      </div>
+
+      <section class="panel" aria-labelledby="status-title">
+        <div class="panel__head">
+          <h2 class="panel__title" id="status-title">This device</h2>
+          <button type="button" class="btn btn--ghost btn--sm" data-ring id="profile-refresh">Refresh</button>
+        </div>
+        <dl class="facts" id="facts"></dl>
+      </section>
+
+      <div class="stack">
+        <button type="button" class="btn btn--ghost btn--wide" data-ring id="help-open-2"
+                aria-haspopup="dialog">Ring controls</button>
+        <a class="btn btn--danger btn--wide" data-ring id="signout" href="/api/auth/logout">Sign out</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- role="tablist" is allowed on <nav>. aria-selected only means anything inside
+       one, and the tabindex below is the roving-tabindex half of the contract:
+       Tab reaches the tablist once, arrows do the rest. `.focus()` still works on
+       tabindex="-1", so the ring cursor still reaches every tab via ArrowUp/Down. -->
+  <nav class="tabbar" id="tabbar" role="tablist" aria-label="Views">
+    <button type="button" class="tab" data-ring data-tab="talk" role="tab" tabindex="0"
+            aria-selected="true" aria-controls="view-talk">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <rect x="9.5" y="3" width="5" height="10" rx="2.5" fill="currentColor"/>
+        <path d="M6 10.6a6 6 0 0 0 12 0M12 16.6V21" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round"/>
+      </svg>
+      <span>Talk</span>
+    </button>
+    <button type="button" class="tab" data-ring data-tab="memory" role="tab" tabindex="-1"
+            aria-selected="false" aria-controls="view-memory">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <path d="M12 3.2a5 5 0 0 1 5 5v2.3a5 5 0 0 1-1.6 3.7l-.6.5a3 3 0 0 0-1 2.2v1.4a2.8 2.8 0 1 1-5.6 0v-1.4a3 3 0 0 0-1-2.2l-.6-.5A5 5 0 0 1 7 10.5V8.2a5 5 0 0 1 5-5z"
+              fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M9.6 18.4h4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span>Memory</span>
+    </button>
+    <button type="button" class="tab" data-ring data-tab="profile" role="tab" tabindex="-1"
+            aria-selected="false" aria-controls="view-profile">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="8.2" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M4.8 20a7.2 7.2 0 0 1 14.4 0" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round"/>
+      </svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ===================== Ring controls help ===================== -->
+<div class="sheet" id="help" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+  <div class="sheet__panel">
+    <div class="panel__head">
+      <h2 class="sheet__title" id="help-title">Ring controls</h2>
+      <button type="button" class="iconbtn" data-ring id="help-close" aria-label="Close ring controls">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <dl class="keymap">
+      <div class="keymap__row">
+        <dt><kbd>▲</kbd><kbd>▼</kbd></dt>
+        <dd>Move the highlight between controls</dd>
+      </div>
+      <div class="keymap__row">
+        <dt><kbd>◀</kbd><kbd>▶</kbd></dt>
+        <dd>Switch view — Talk · Memory · Profile</dd>
+      </div>
+      <div class="keymap__row">
+        <dt><kbd>Select</kbd><span class="keymap__alt">Enter</span></dt>
+        <dd>Activate the highlighted control. Hold it on the mic to talk; a quick press latches listening on, another stops it.</dd>
+      </div>
+      <div class="keymap__row">
+        <dt><kbd>Space</kbd></dt>
+        <dd>Hold anywhere to talk — jumps to Talk and listens until you let go</dd>
+      </div>
+      <div class="keymap__row">
+        <dt><kbd>Esc</kbd></dt>
+        <dd>Leave a text field, close this panel</dd>
+      </div>
+      <div class="keymap__row">
+        <dt><kbd>?</kbd></dt>
+        <dd>Open these controls</dd>
+      </div>
+    </dl>
+
+    <p class="sheet__note">
+      On a phone: hold the mic to talk and release to send, or tap it once to latch listening on.
+      Everything here is reachable by touch too.
+    </p>
+    <button type="button" class="btn btn--primary btn--wide" data-ring id="help-done">Done</button>
+  </div>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>

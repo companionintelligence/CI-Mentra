@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "rewriteRelativeImportExtensions": true,
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "strict": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -15,6 +16,12 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/__tests__"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/__tests__"
+  ]
 }

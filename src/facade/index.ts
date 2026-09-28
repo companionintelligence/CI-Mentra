@@ -7,7 +7,7 @@ import { audioSpeechRouter } from './audio-speech.ts';
 import { requireAuth } from '../middleware/auth.ts';
 import { rateLimitMiddleware } from '../middleware/rate-limit.ts';
 
-export const facadeRouter = Router();
+export const facadeRouter: Router = Router();
 
 // Apply auth (CI-Portal OIDC or static facade key) and rate limiting to all facade routes
 facadeRouter.use(requireAuth);

@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { CanonicalTurn, CanonicalMessage } from '../canonical/types.ts';
-import { Provider, ProviderChatResponse, TranscriptionRequest, TranscriptionResponse } from './types.ts';
-import { Response } from 'express';
+import { type CanonicalTurn, type CanonicalMessage } from '../canonical/types.ts';
+import { type Provider, type ProviderChatResponse, type TranscriptionRequest, type TranscriptionResponse } from './types.ts';
+import { type Response } from 'express';
 import { config } from '../config.ts';
 import pino from 'pino';
 import FormData from 'form-data';

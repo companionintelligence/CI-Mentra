@@ -5,21 +5,34 @@
     "dev": "deno run -A --watch src/index.ts",
     "start": "deno run -A src/index.ts",
     "build": "deno check src/index.ts",
-    "test": "deno test -A --node-modules-dir=auto src/__tests__/",
+    "test": "npm test",
     "lint": "deno lint src/",
     "fmt": "deno fmt src/"
   },
   "compilerOptions": {
     "strict": true,
-    "lib": ["deno.window", "deno.ns"]
+    "lib": [
+      "deno.window",
+      "deno.ns"
+    ]
   },
   "lint": {
-    "include": ["src/"],
-    "exclude": ["src/__tests__/"]
+    "include": [
+      "src/"
+    ],
+    "exclude": [
+      "src/__tests__/"
+    ]
   },
   "fmt": {
-    "include": ["src/"],
+    "include": [
+      "src/"
+    ],
     "singleQuote": true
   },
-  "exclude": ["dist/", "node_modules/", "coverage/"]
+  "exclude": [
+    "dist/",
+    "node_modules/",
+    "coverage/"
+  ]
 }

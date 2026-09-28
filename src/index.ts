@@ -3,7 +3,9 @@ import crypto from 'node:crypto';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import pino from 'pino';
+import { fileURLToPath } from 'node:url';
 import { applyHubInferenceBootstrap } from './hub/inference-bootstrap.ts';
+import { applyFacadeCors, applySetupCors, parseSetupOrigins } from './http/cors.ts';
 
 const logger = pino({ name: 'main' });
 
@@ -21,8 +23,13 @@ async function main(): Promise<void> {
   const { config } = await import('./config.ts');
   const { facadeRouter } = await import('./facade/index.ts');
   const { authRouter } = await import('./auth/routes.ts');
+  const { companionRouter } = await import('./api/companion.ts');
   const { MentraBridge } = await import('./bridge/mentra-bridge.ts');
   const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk.ts');
+  const { ensureSchema } = await import('./store/postgres.ts');
+
+  // Create tables on a bare Postgres (Hub installs have no initdb mount). Fail-open.
+  await ensureSchema();
 
   const localBluetoothRuntimeInfo =
     config.runtime.mode === 'bluetooth-local'
@@ -42,20 +49,16 @@ async function main(): Promise<void> {
   const cookieSecret = config.auth.oidc.sessionSecret || crypto.randomBytes(32).toString('hex');
   app.use(cookieParser(cookieSecret));
 
-  // CORS for webview origins
-  app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') {
-      res.sendStatus(204);
-      return;
-    }
-    next();
-  });
+  // CORS for webview origins — facade only; never on the cookie-authenticated
+  // /api surface. See `applyFacadeCors`.
+  applyFacadeCors(app);
+  applySetupCors(app, parseSetupOrigins(process.env.MENTRA_SETUP_ORIGINS));
 
   // CI-Portal OIDC login (Authorization Code + PKCE): /api/auth/{config,login,callback,logout,me}
   app.use('/api/auth', authRouter);
+
+  // Companion BFF for the ring/phone UI: ask, memory search/remember, profile, history
+  app.use('/api/companion', companionRouter);
 
   // OpenAI-compatible API routes
   app.use('/v1', facadeRouter);
@@ -84,9 +87,19 @@ async function main(): Promise<void> {
           slug: hubBootstrap.slug,
         },
       },
+      memory: {
+        enabled: config.memory.enabled && Boolean(config.memory.apiKey),
+        baseUrl: config.memory.baseUrl,
+        platform: config.memory.platform,
+      },
+      companionUi: { path: '/', devAnonymous: config.dev.allowAnonymous },
       bluetooth: localBluetoothRuntimeInfo,
     });
   });
+
+  // Companion UI (ring + phone) — static, mounted last so it never shadows an API route.
+  // `public/` is not compiled, so it sits next to dist/ at the repo root.
+  app.use(express.static(fileURLToPath(new URL('../public', import.meta.url)), { extensions: ['html'] }));
 
   const facadeServer = app.listen(config.facade.port, () => {
     logger.info(
@@ -124,6 +137,8 @@ async function main(): Promise<void> {
   });
 }
 
+// Entry point only: the testable pieces live in ./http/cors.ts, so nothing
+// imports this module and it can boot unconditionally (Node ESM and Deno alike).
 main().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(1);

@@ -1,4 +1,4 @@
-import { CanonicalTurn, ProviderName } from '../canonical/types.ts';
+import { type CanonicalTurn, type ProviderName } from '../canonical/types.ts';
 import type { Provider } from './types.ts';
 import { OllamaProvider } from './ollama.ts';
 import { VllmProvider } from './vllm.ts';

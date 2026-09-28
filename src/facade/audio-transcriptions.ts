@@ -1,8 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import { resolveProvider } from '../providers/index.ts';
-import { TranscriptionRequest } from '../providers/types.ts';
-import { CanonicalTurn } from '../canonical/types.ts';
+import { type TranscriptionRequest } from '../providers/types.ts';
+import { type CanonicalTurn } from '../canonical/types.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-transcriptions' });
@@ -21,7 +21,7 @@ const upload = multer({
   },
 });
 
-export const audioTranscriptionsRouter = Router();
+export const audioTranscriptionsRouter: Router = Router();
 
 audioTranscriptionsRouter.post('/', upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
