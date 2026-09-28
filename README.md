@@ -67,14 +67,49 @@ chat model comes from `LLM_DEFAULT_CHAT_MODEL`.
 
 ### 3. Backend hermes / openclaw server on CI-Hub
 
-The CI-Hub does not proxy inference; it hands each marketplace app (slug
-`hermes-agent` / `openclaw`) an OpenAI-compatible endpoint. CI-Mentra exposes a
-**`hermes` provider** for that backend. Configure it directly with
-`HERMES_OPENAI_BASE_URL` / `HERMES_OPENAI_API_KEY` / `HERMES_DEFAULT_MODEL`, or
-set `HUB_INFERENCE_BOOTSTRAP=true` to auto-discover credentials at startup from
-`GET ${CI_HUB_URL}/api/inference/apps/${HUB_APP_SLUG}/bootstrap.env` (fail-open).
+The CI-Hub does not proxy inference; it hands each marketplace app an
+OpenAI-compatible endpoint. CI-Mentra exposes a **`hermes` provider** for that
+backend. Configure it directly with `HERMES_OPENAI_BASE_URL` /
+`HERMES_OPENAI_API_KEY` / `HERMES_DEFAULT_MODEL`, or set
+`HUB_INFERENCE_BOOTSTRAP=true` to auto-discover credentials at startup from
+`GET ${hub}/api/inference/apps/${HUB_APP_SLUG}/bootstrap.env` (fail-open).
 Route a request to it by setting `DEFAULT_PROVIDER=hermes`, or per-request with a
 `hermes:` / `openclaw:` model prefix (e.g. `hermes:gemma4:latest`).
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `CI_HUB_URL` | Hub origin; falls back to the Hub-injected `HUB_URL` | `http://ci-hub:5002` |
+| `HUB_APP_SLUG` | Which app's handout to fetch | `ci-mentra` |
+
+The Hub answers `bootstrap.env` **only to a container it installed under that
+slug's app name** (its `AppContainerOriginGuard`), so a Hub-installed CI-Mentra
+uses its own `ci-mentra` slug, which hands out `LLM_API_BASE` / `LLM_API_KEY` /
+`LLM_DEFAULT_CHAT_MODEL` plus `OLLAMA_HOST`. That slug needs a CI-Hub release that
+includes it; older Hubs answer 403 and CI-Mentra keeps its configured endpoints.
+Production Hubs listen on `5002` (container `ci-hub`, alias `ci-os-hub`); `3000`
+is only the source-dev default.
+
+**Marketplace manifest.** The CI-Marketplace listing for `ci-mentra` should
+declare the Hub integrations so the Hub injects inference and memory env at
+install time, with no bootstrap call needed:
+
+```json
+"hub_integration": {
+  "inference": {
+    "llm_base_url": "LLM_API_BASE",
+    "llm_api_key": "LLM_API_KEY",
+    "chat_model": "LLM_DEFAULT_CHAT_MODEL",
+    "ollama_host": "OLLAMA_HOST"
+  },
+  "memory": { "url_env": "CI_SERVER_URL", "token_env": "CI_SERVER_TOKEN", "url_style": "origin" }
+}
+```
+
+With the memory mapping, the Hub's connect flow mints a **memory-scoped**
+CI-Server key for `ci-mentra` (CI-Server's `ConnectService` scopes it to
+`memory`) and injects it as `CI_SERVER_TOKEN`, which §4 already reads. With
+`url_style: origin`, set `CI_SERVER_MEMORY_PATH_PREFIX` to match what that origin
+serves (see §4).
 
 ### 4. Companion Memory (CI-Server)
 
@@ -89,7 +124,7 @@ utterance — the same integration the Hermes / OpenClaw plugins use.
 | `CI_SERVER_MEMORY_PATH_PREFIX` | Path prefix in front of `/memory/*` (see below) | `/api` |
 | `CI_SERVER_MEMORY_KEY` | Memory-scoped CI-Server API key (falls back to `CI_SERVER_TOKEN`) | _(empty)_ |
 | `MENTRA_MEMORY_PLATFORM` | Tags memories/turns written by this device | `mentra` |
-| `MENTRA_MEMORY_RECALL_MAX` | Recall hits pulled into the prompt per utterance | `6` |
+| `MENTRA_MEMORY_RECALL_MAX` | Recall hits pulled into the prompt per utterance (clamped to CI-Server's 1–20) | `6` |
 
 > **The memory API is _not_ Portal-OIDC authenticated.** CI-Server's `/memory/*`
 > routes are `ApiKeyGuard`-only and expect an **`x-api-key`** header carrying a
@@ -182,6 +217,42 @@ useful for iterating on the UI before a `ci-mentra` client is registered in CI-P
 
 > ⚠️ **Never enable this in production.** It exposes `/api/companion` — and therefore
 > the wearer's memory — to any unauthenticated caller that can reach the port.
+
+## Hosted setup + demo: mentra.ci.computer
+
+`site/` is a Cloudflare Worker with static assets that serves:
+
+| Path | What |
+|------|------|
+| `/` | Setup guide. Builds your `.env` **in the browser** (nothing is sent anywhere), gives run commands per deployment mode, and checks a bridge's `/health` |
+| `/app/` | The companion UI from `public/`, copied verbatim, running against a canned **demo BFF** (`site/src/demo.ts`). It stores nothing and never proxies to a real bridge |
+| `/api/*` | That demo BFF |
+| `/healthz` | Site liveness |
+
+```bash
+npm run site:build    # assemble site/dist (site/public + public/ as /app)
+npm run site:dev      # wrangler dev on :8787
+npm run site:deploy   # wrangler deploy to mentra.ci.computer (custom domain route)
+npx jest site         # worker, demo BFF and env-builder tests
+```
+
+`.github/workflows/deploy-site.yml` deploys on pushes to `main` that touch `site/`,
+`public/` or the build script, and on manual dispatch. It needs the repo secrets
+`CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, plus Workers Routes: Edit on the
+`ci.computer` zone) and `CLOUDFLARE_ACCOUNT_ID`, set on the `production` environment.
+
+**Bridge check.** The setup page reads `GET /health` on the wearer's bridge from the
+browser. The bridge allows that cross-origin read only for `MENTRA_SETUP_ORIGINS`
+(default `https://mentra.ci.computer`; empty disables it). It answers Chrome's
+Private Network Access preflight too, so `http://localhost:8080` works. Only
+`/health` gets the header; the cookie-authenticated `/api/*` surface stays
+same-origin.
+
+## Container image
+
+`docker compose up -d --build` builds a multi-stage image that compiles
+TypeScript and ships `dist/`, `public/` (the companion UI) and `app_config.json`.
+It runs as `node` and has a `HEALTHCHECK` on `/health`.
 
 ## MentraOS manifest (`app_config.json`)
 

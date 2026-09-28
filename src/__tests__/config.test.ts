@@ -92,8 +92,8 @@ describe('config', () => {
     expect(config.auth.portal.issuer).toBe('https://hub.companionintelligence.com');
     expect(config.auth.portal.jwksUri).toBe('https://hub.companionintelligence.com/api/auth/jwks');
     expect(config.auth.portal.audience).toEqual(['ci-mentra', 'ci-server', 'ci-hub']);
-    expect(config.hub.appSlug).toBe('hermes-agent');
-    expect(config.hub.url).toBe('http://ci-os-hub:3000');
+    expect(config.hub.appSlug).toBe('ci-mentra');
+    expect(config.hub.url).toBe('http://ci-hub:5002');
   });
 
   it('enables Portal OIDC when PORTAL_OIDC_ENABLED is truthy', async () => {
