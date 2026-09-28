@@ -81,6 +81,21 @@ describe('config', () => {
     expect(config.providers.hermes.baseUrl).toBe('http://hermes-gateway:8642');
   });
 
+  it('points the hermes provider at the Hub-injected LLM_* vars of a marketplace install', async () => {
+    for (const key of ['HERMES_OPENAI_BASE_URL', 'OPENAI_API_BASE', 'HUB_LLM_BASE_URL', 'HERMES_OPENAI_API_KEY', 'HUB_LLM_API_KEY', 'HERMES_DEFAULT_MODEL', 'HUB_LLM_MODEL']) {
+      delete process.env[key];
+    }
+    process.env.LLM_API_BASE = 'http://vllm:8000/v1';
+    process.env.LLM_API_KEY = 'hub-key';
+    process.env.LLM_DEFAULT_CHAT_MODEL = 'qwen3:8b';
+
+    const { config } = await import('../config');
+
+    expect(config.providers.hermes.baseUrl).toBe('http://vllm:8000');
+    expect(config.providers.hermes.apiKey).toBe('hub-key');
+    expect(config.providers.hermes.defaultModel).toBe('qwen3:8b');
+  });
+
   it('parses Portal OIDC config and defaults hub settings', async () => {
     delete process.env.PORTAL_OIDC_ENABLED;
     process.env.PORTAL_OIDC_AUDIENCE = 'ci-mentra, ci-server ,, ci-hub';

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Pool } from 'pg';
 import { config } from '../config';
 import pino from 'pino';
@@ -12,6 +14,32 @@ export function getPool(): Pool {
     pool.on('error', (err) => logger.error({ err }, 'Unexpected postgres error'));
   }
   return pool;
+}
+
+/**
+ * Apply `schema.sql` (every statement is IF NOT EXISTS, so this is idempotent).
+ *
+ * The repo's docker-compose mounts the file into Postgres' initdb, but a Hub
+ * marketplace install runs a bare Postgres, so the bridge brings its own
+ * tables. The build copies schema.sql next to the compiled module; the src
+ * fallback covers ts-node. Fail-open: a missing or unreachable database is
+ * logged, and only the Postgres-backed routes (/v1/responses) degrade.
+ */
+export async function ensureSchema(): Promise<boolean> {
+  const candidates = [path.join(__dirname, 'schema.sql'), path.join(__dirname, '..', '..', 'src', 'store', 'schema.sql')];
+  const file = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!file) {
+    logger.warn({ candidates }, 'schema.sql not found; skipping schema bootstrap');
+    return false;
+  }
+  try {
+    await getPool().query(fs.readFileSync(file, 'utf8'));
+    logger.info('database schema ensured');
+    return true;
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'could not ensure database schema (continuing)');
+    return false;
+  }
 }
 
 export async function query<T = Record<string, unknown>>(

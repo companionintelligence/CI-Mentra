@@ -254,6 +254,17 @@ same-origin.
 TypeScript and ships `dist/`, `public/` (the companion UI) and `app_config.json`.
 It runs as `node` and has a `HEALTHCHECK` on `/health`.
 
+On boot the bridge applies `src/store/schema.sql` (all `IF NOT EXISTS`) to
+`DATABASE_URL`, so it works against a bare Postgres such as a Hub install, not
+only the repo's compose with its initdb mount. It is fail-open: without a
+database only `/v1/responses` degrades.
+
+**Published image.** `.github/workflows/publish-image.yml` builds `linux/amd64`
+and `linux/arm64` and pushes `ghcr.io/companionintelligence/ci-mentra` on `v*`
+tags (as that version) and on manual dispatch (as `sha-<short>`). The run
+summary prints the `tag@sha256:` reference to pin in the CI-Marketplace
+`ci-mentra` listing, which stays hidden (quarantined) until that image exists.
+
 ## MentraOS manifest (`app_config.json`)
 
 `app_config.json` is the **MentraOS manifest**: it declares the wearer-facing settings
