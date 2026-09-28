@@ -15,9 +15,9 @@ import {
   toSpeakable,
   TAKE_PHOTO_SENTINEL,
   ToolId,
-} from '../../mentra/tools';
-import { parseRememberCommand } from '../../agent/answer-service';
-import * as memory from '../../memory/companion-memory';
+} from '../../mentra/tools.ts';
+import { parseRememberCommand } from '../../agent/answer-service.ts';
+import * as memory from '../../memory/companion-memory.ts';
 
 const mockedMemory = memory as jest.Mocked<typeof memory>;
 

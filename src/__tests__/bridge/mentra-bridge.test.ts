@@ -32,13 +32,13 @@ import {
   plainAnswer,
   MentraBridge,
   SettingKey,
-} from '../../bridge/mentra-bridge';
-import { resetToolState, TAKE_PHOTO_SENTINEL } from '../../mentra/tools';
-import * as memory from '../../memory/companion-memory';
-import * as answerService from '../../agent/answer-service';
-import * as sessionHistory from '../../agent/session-history';
-import { resolveProvider } from '../../providers';
-import { transcribeAudio } from '../../voice/stt';
+} from '../../bridge/mentra-bridge.ts';
+import { resetToolState, TAKE_PHOTO_SENTINEL } from '../../mentra/tools.ts';
+import * as memory from '../../memory/companion-memory.ts';
+import * as answerService from '../../agent/answer-service.ts';
+import * as sessionHistory from '../../agent/session-history.ts';
+import { resolveProvider } from '../../providers/index.ts';
+import { transcribeAudio } from '../../voice/stt.ts';
 
 const mockedMemory = memory as jest.Mocked<typeof memory>;
 const mockedAnswer = answerService.answer as jest.Mock;

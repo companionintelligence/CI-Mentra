@@ -13,9 +13,9 @@ jest.mock('../../auth/portal-token', () => ({
   verifyPortalToken: jest.fn(),
 }));
 
-import { requireAuth, AuthenticatedRequest } from '../../middleware/auth';
-import { verifyPortalToken } from '../../auth/portal-token';
-import { createSession, clearAllSessions } from '../../auth/sessions';
+import { requireAuth, AuthenticatedRequest } from '../../middleware/auth.ts';
+import { verifyPortalToken } from '../../auth/portal-token.ts';
+import { createSession, clearAllSessions } from '../../auth/sessions.ts';
 
 const mockedVerify = verifyPortalToken as jest.MockedFunction<typeof verifyPortalToken>;
 

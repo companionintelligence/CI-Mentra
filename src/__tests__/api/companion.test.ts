@@ -52,13 +52,13 @@ jest.mock('../../memory/companion-memory', () => ({
   writeTurn: jest.fn(),
 }));
 
-import { companionRouter } from '../../api/companion';
-import { answer } from '../../agent/answer-service';
-import { recall, writeMemory, getContext } from '../../memory/companion-memory';
-import { resetSessions, appendExchange } from '../../agent/session-history';
-import { createSession, clearAllSessions, SESSION_COOKIE } from '../../auth/sessions';
-import { resetOwnerWarning } from '../../middleware/companion-auth';
-import { applyFacadeCors } from '../../index';
+import { companionRouter } from '../../api/companion.ts';
+import { answer } from '../../agent/answer-service.ts';
+import { recall, writeMemory, getContext } from '../../memory/companion-memory.ts';
+import { resetSessions, appendExchange } from '../../agent/session-history.ts';
+import { createSession, clearAllSessions, SESSION_COOKIE } from '../../auth/sessions.ts';
+import { resetOwnerWarning } from '../../middleware/companion-auth.ts';
+import { applyFacadeCors } from '../../http/cors.ts';
 
 const mockedAnswer = answer as jest.MockedFunction<typeof answer>;
 const mockedRecall = recall as jest.MockedFunction<typeof recall>;

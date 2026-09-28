@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { resolveProvider } from '../providers';
-import { config } from '../config';
-import { CanonicalTurn } from '../canonical/types';
+import { resolveProvider } from '../providers/index.ts';
+import { config } from '../config.ts';
+import { type CanonicalTurn } from '../canonical/types.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-models' });
 
-export const modelsRouter = Router();
+export const modelsRouter: Router = Router();
 
 modelsRouter.get('/', async (_req, res) => {
   try {

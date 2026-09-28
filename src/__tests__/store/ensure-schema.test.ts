@@ -3,7 +3,7 @@ jest.mock('pg', () => ({
   Pool: jest.fn().mockImplementation(() => ({ query: mockQuery, on: jest.fn() })),
 }));
 
-import { ensureSchema } from '../../store/postgres';
+import { ensureSchema } from '../../store/postgres.ts';
 
 describe('ensureSchema', () => {
   beforeEach(() => mockQuery.mockReset());

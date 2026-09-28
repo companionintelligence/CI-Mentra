@@ -1,87 +1,13 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
-import path from 'node:path';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import pino from 'pino';
-import { applyHubInferenceBootstrap } from './hub/inference-bootstrap';
+import { fileURLToPath } from 'node:url';
+import { applyHubInferenceBootstrap } from './hub/inference-bootstrap.ts';
+import { applyFacadeCors, applySetupCors, parseSetupOrigins } from './http/cors.ts';
 
 const logger = pino({ name: 'main' });
-
-/**
- * Wildcard CORS, scoped to the OpenAI-compatible facade (`/v1`) ONLY.
- *
- * `/v1` is a bearer-token API for webviews: a cross-origin page can only call
- * it if it already holds a token, and `Access-Control-Allow-Origin: *` forbids
- * credentialed (cookie-bearing) requests by definition. Wildcard is correct there.
- *
- * `/api/*` — the companion BFF and the auth routes — is the opposite: it is
- * same-origin and authenticated by the session COOKIE. Sending ACAO `*` there
- * let any website the wearer happens to visit `fetch()`
- * `http://localhost:<port>/api/companion/profile` and *read the response body*,
- * because the wildcard is what grants the read. With MENTRA_DEV_ALLOW_ANONYMOUS
- * on, that response is the wearer's entire private memory, no credentials
- * needed. Omitting the header makes the browser withhold the response.
- *
- * Exported (rather than inlined into `main`) so the scoping is testable without
- * booting a server.
- */
-export function applyFacadeCors(app: express.Application): void {
-  app.use('/v1', (req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') {
-      res.sendStatus(204);
-      return;
-    }
-    next();
-  });
-}
-
-/** The hosted setup page (mentra.ci.computer) probes a bridge's /health from the browser. */
-export const DEFAULT_SETUP_ORIGINS = ['https://mentra.ci.computer'];
-
-export function parseSetupOrigins(raw: string | undefined): string[] {
-  if (raw === undefined) return DEFAULT_SETUP_ORIGINS;
-  return raw
-    .split(',')
-    .map((o) => o.trim().replace(/\/+$/, ''))
-    .filter((o) => /^https?:\/\/[^/\s]+$/i.test(o));
-}
-
-/**
- * CORS for `GET /health` ONLY, and only for allowlisted origins.
- *
- * /health is unauthenticated and already readable by anything that can reach
- * the port; this just lets the setup page at mentra.ci.computer show the result.
- * An exact-origin allowlist (not `*`) keeps random sites from fingerprinting a
- * wearer's bridge, and the cookie-authenticated `/api/*` surface is untouched.
- * `Access-Control-Allow-Private-Network` lets Chrome's Private Network Access
- * preflight through when the bridge lives on localhost or a LAN address.
- */
-export function applySetupCors(app: express.Application, origins: string[]): void {
-  const allowed = new Set(origins);
-  app.use('/health', (req, res, next) => {
-    const origin = req.headers.origin;
-    if (!origin || !allowed.has(origin)) {
-      next();
-      return;
-    }
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    if (req.method === 'OPTIONS') {
-      if (req.headers['access-control-request-private-network'] === 'true') {
-        res.setHeader('Access-Control-Allow-Private-Network', 'true');
-      }
-      res.setHeader('Access-Control-Max-Age', '600');
-      res.sendStatus(204);
-      return;
-    }
-    next();
-  });
-}
 
 async function main(): Promise<void> {
   // Adopt CI-Hub inference credentials (Ollama + hermes/openclaw backend)
@@ -94,13 +20,13 @@ async function main(): Promise<void> {
 
   // Deferred imports: these modules read `config`, which must resolve AFTER the
   // Hub bootstrap has populated the environment.
-  const { config } = await import('./config');
-  const { facadeRouter } = await import('./facade');
-  const { authRouter } = await import('./auth/routes');
-  const { companionRouter } = await import('./api/companion');
-  const { MentraBridge } = await import('./bridge/mentra-bridge');
-  const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk');
-  const { ensureSchema } = await import('./store/postgres');
+  const { config } = await import('./config.ts');
+  const { facadeRouter } = await import('./facade/index.ts');
+  const { authRouter } = await import('./auth/routes.ts');
+  const { companionRouter } = await import('./api/companion.ts');
+  const { MentraBridge } = await import('./bridge/mentra-bridge.ts');
+  const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk.ts');
+  const { ensureSchema } = await import('./store/postgres.ts');
 
   // Create tables on a bare Postgres (Hub installs have no initdb mount). Fail-open.
   await ensureSchema();
@@ -173,7 +99,7 @@ async function main(): Promise<void> {
 
   // Companion UI (ring + phone) — static, mounted last so it never shadows an API route.
   // `public/` is not compiled, so it sits next to dist/ at the repo root.
-  app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'] }));
+  app.use(express.static(fileURLToPath(new URL('../public', import.meta.url)), { extensions: ['html'] }));
 
   const facadeServer = app.listen(config.facade.port, () => {
     logger.info(
@@ -211,11 +137,9 @@ async function main(): Promise<void> {
   });
 }
 
-// Only boot when executed as a program (`node dist/index.js` / `ts-node src/index.ts`).
-// Guarded so tests can import `applyFacadeCors` / `applySetupCors` without starting servers.
-if (require.main === module) {
-  main().catch((err) => {
-    console.error('Fatal error:', err);
-    process.exit(1);
-  });
-}
+// Entry point only: the testable pieces live in ./http/cors.ts, so nothing
+// imports this module and it can boot unconditionally (Node ESM and Deno alike).
+main().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

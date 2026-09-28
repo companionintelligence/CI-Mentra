@@ -19,7 +19,7 @@ const mockConfig = {
 jest.mock('../../config', () => ({ config: mockConfig }));
 
 import * as jose from 'jose';
-import { verifyPortalToken, isPortalAuthEnabled } from '../../auth/portal-token';
+import { verifyPortalToken, isPortalAuthEnabled } from '../../auth/portal-token.ts';
 
 let privateKey: jose.KeyLike;
 let publicKey: jose.KeyLike;

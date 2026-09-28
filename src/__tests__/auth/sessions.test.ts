@@ -5,7 +5,7 @@ import {
   updateSessionTokens,
   clearAllSessions,
   SESSION_COOKIE,
-} from '../../auth/sessions';
+} from '../../auth/sessions.ts';
 
 const USER = { sub: 'user-1', email: 'liam@ci.computer', name: 'Liam' };
 const TOKENS = { access_token: 'at', id_token: 'it', refresh_token: 'rt', expires_in: 3600 };

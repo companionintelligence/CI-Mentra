@@ -1,4 +1,4 @@
-import { normalizeChatCompletionToCanonical, normalizeResponsesRequestToCanonical } from '../../canonical/normalizer';
+import { normalizeChatCompletionToCanonical, normalizeResponsesRequestToCanonical } from '../../canonical/normalizer.ts';
 
 describe('normalizeChatCompletionToCanonical', () => {
   it('should normalize a basic chat completion request', () => {

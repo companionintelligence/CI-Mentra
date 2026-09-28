@@ -44,9 +44,9 @@ jest.mock('../../store/postgres', () => ({
   appendMessage: jest.fn().mockResolvedValue(undefined),
 }));
 
-import { responsesRouter } from '../../facade/responses';
-import { requireApiKey } from '../../middleware/auth';
-import { rateLimitMiddleware } from '../../middleware/rate-limit';
+import { responsesRouter } from '../../facade/responses.ts';
+import { requireApiKey } from '../../middleware/auth.ts';
+import { rateLimitMiddleware } from '../../middleware/rate-limit.ts';
 
 const app = express();
 app.use(express.json());

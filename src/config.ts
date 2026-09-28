@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { DEFAULT_HUB_APP_SLUG, resolveHubUrl } from './hub/inference-bootstrap';
+import { DEFAULT_HUB_APP_SLUG, resolveHubUrl } from './hub/inference-bootstrap.ts';
 dotenv.config();
 
 function normalizeBaseUrl(rawValue: string | undefined, fallback: string, defaultProtocol: 'http' | 'https' = 'https'): string {

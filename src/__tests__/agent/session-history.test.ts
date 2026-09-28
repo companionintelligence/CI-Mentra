@@ -10,7 +10,7 @@ import {
   clearSession,
   pruneSessions,
   resetSessions,
-} from '../../agent/session-history';
+} from '../../agent/session-history.ts';
 
 beforeEach(() => {
   resetSessions();

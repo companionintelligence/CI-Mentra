@@ -2,12 +2,13 @@
   "name": "mentra-bridge",
   "version": "1.0.0",
   "description": "TypeScript/Node.js voice agent backend for Mentra Live smart glasses",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && cp src/store/schema.sql dist/store/schema.sql",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "dev:companion": "MENTRA_DEV_ALLOW_ANONYMOUS=true FACADE_PORT=8092 ts-node src/index.ts",
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "dev:companion": "MENTRA_DEV_ALLOW_ANONYMOUS=true FACADE_PORT=8092 node --experimental-strip-types src/index.ts",
     "test": "jest",
     "site:build": "scripts/build-site.sh",
     "site:dev": "npm run site:build && npx --yes wrangler@4 dev --config site/wrangler.jsonc",
@@ -42,8 +43,11 @@
     "@types/uuid": "^9.0.7",
     "jest": "^29.7.0",
     "supertest": "^6.3.4",
-    "ts-jest": "^29.1.2",
+    "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.0"
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

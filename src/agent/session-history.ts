@@ -1,5 +1,5 @@
-import { CanonicalMessage } from '../canonical/types';
-import { config } from '../config';
+import { type CanonicalMessage } from '../canonical/types.ts';
+import { config } from '../config.ts';
 
 /**
  * Short-term (in-session) memory: a rolling window of the last N turns plus a

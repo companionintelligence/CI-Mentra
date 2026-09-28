@@ -1,10 +1,10 @@
-import { CanonicalTurn, ProviderName } from '../canonical/types';
-import { Provider } from './types';
-import { OllamaProvider } from './ollama';
-import { VllmProvider } from './vllm';
-import { OpenAIProvider } from './openai';
-import { HermesProvider } from './hermes';
-import { config } from '../config';
+import { type CanonicalTurn, type ProviderName } from '../canonical/types.ts';
+import type { Provider } from './types.ts';
+import { OllamaProvider } from './ollama.ts';
+import { VllmProvider } from './vllm.ts';
+import { OpenAIProvider } from './openai.ts';
+import { HermesProvider } from './hermes.ts';
+import { config } from '../config.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'provider-router' });
@@ -44,4 +44,5 @@ export function resolveProvider(turn: CanonicalTurn): Provider {
   return getProvider(config.providers.default as ProviderName);
 }
 
-export { Provider, providers };
+export type { Provider };
+export { providers };

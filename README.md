@@ -1,6 +1,36 @@
 # CI-Mentra
 Mentra Glass Live App
 
+## Runtime
+
+The service runs on either [Deno](https://deno.com) (2.9+, preferred; used by
+the Dockerfile) or Node.js 20+. Source is real ESM (`"type": "module"` +
+`module: NodeNext` + `verbatimModuleSyntax` in `tsconfig.json`): relative
+imports carry explicit `.ts` extensions and type-only imports are marked
+`type`, so the same files run unbundled under Deno and Node's type stripping.
+Deno resolves npm dependencies directly via `deno.json`'s `nodeModulesDir: "auto"`.
+
+```bash
+# Deno
+deno task dev     # deno run -A --watch src/index.ts
+deno task test    # runs the Jest suite (see "Testing" note below)
+deno task build   # deno check src/index.ts (type-check)
+deno task lint
+
+# Node (unchanged)
+npm install
+npm run dev       # node --watch --experimental-strip-types src/index.ts (Node 22.6+)
+npm test          # jest
+npm run build     # tsc -> dist/ (plus dist/store/schema.sql)
+npm start         # node dist/index.js
+```
+
+**Testing note:** the existing test suite uses `jest.mock()` for module
+mocking, which Deno's test runner has no equivalent for (Deno's ES module
+records are immutable, so modules can't be monkey-patched the way Jest does).
+Plain `deno test` therefore can't run these specs, so `deno task test`
+delegates to Jest (`npm test`), which is the supported way to run the suite.
+
 ## Companion Intelligence integration
 
 CI-Mentra is a Device-layer bridge: it turns Mentra glasses voice input into an
@@ -250,9 +280,10 @@ same-origin.
 
 ## Container image
 
-`docker compose up -d --build` builds a multi-stage image that compiles
-TypeScript and ships `dist/`, `public/` (the companion UI) and `app_config.json`.
-It runs as `node` and has a `HEALTHCHECK` on `/health`.
+`docker compose up -d --build` builds a `denoland/deno:alpine` image that runs
+`src/index.ts` directly. `deno check` runs at build time as the type-check
+gate, and the image ships `public/` (the companion UI) and `app_config.json`.
+It runs as the unprivileged `deno` user and has a `HEALTHCHECK` on `/health`.
 
 On boot the bridge applies `src/store/schema.sql` (all `IF NOT EXISTS`) to
 `DATABASE_URL`, so it works against a bare Postgres such as a Hub install, not

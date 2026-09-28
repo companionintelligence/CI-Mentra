@@ -1,13 +1,13 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import axios from 'axios';
-import { config } from '../config';
-import { resolveProvider } from '../providers';
-import { CanonicalTurn } from '../canonical/types';
+import { config } from '../config.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { type CanonicalTurn } from '../canonical/types.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-speech' });
 
-export const audioSpeechRouter = Router();
+export const audioSpeechRouter: Router = Router();
 
 interface SpeechRequest {
   model: string;

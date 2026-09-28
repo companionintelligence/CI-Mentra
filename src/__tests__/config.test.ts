@@ -16,7 +16,7 @@ describe('config', () => {
     process.env.PORT = '7777';
     process.env.MENTRA_CLOUD_API_URL = 'ci-server.internal:8443/';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.mentra.packageName).toBe('com.example.alias');
     expect(config.mentra.apiKey).toBe('alias-api-key');
@@ -32,7 +32,7 @@ describe('config', () => {
     process.env.MENTRA_PORT = '7010';
     process.env.PORT = '7777';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.mentra.packageName).toBe('com.example.primary');
     expect(config.mentra.apiKey).toBe('primary-api-key');
@@ -44,7 +44,7 @@ describe('config', () => {
     process.env.VLLM_BASE_URL = 'vllm.internal:8000/';
     process.env.OPENAI_BASE_URL = 'https://openai-proxy.internal/';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.providers.ollama.baseUrl).toBe('http://ollama.local:11434');
     expect(config.providers.vllm.baseUrl).toBe('http://vllm.internal:8000');
@@ -60,7 +60,7 @@ describe('config', () => {
     process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
     process.env.LLM_DEFAULT_CHAT_MODEL = 'gemma4:latest';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.providers.ollama.baseUrl).toBe('http://host.docker.internal:11434');
     expect(config.providers.ollama.apiKey).toBe('ollama'); // dummy bearer default
@@ -74,7 +74,7 @@ describe('config', () => {
     process.env.LLM_API_BASE = 'http://host.docker.internal:11434/v1';
     process.env.HERMES_OPENAI_BASE_URL = 'http://hermes-gateway:8642/v1';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     // Providers append /v1 themselves, so config must not double it.
     expect(config.providers.ollama.baseUrl).toBe('http://host.docker.internal:11434');
@@ -89,7 +89,7 @@ describe('config', () => {
     process.env.LLM_API_KEY = 'hub-key';
     process.env.LLM_DEFAULT_CHAT_MODEL = 'qwen3:8b';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.providers.hermes.baseUrl).toBe('http://vllm:8000');
     expect(config.providers.hermes.apiKey).toBe('hub-key');
@@ -100,7 +100,7 @@ describe('config', () => {
     delete process.env.PORTAL_OIDC_ENABLED;
     process.env.PORTAL_OIDC_AUDIENCE = 'ci-mentra, ci-server ,, ci-hub';
 
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.auth.portal.enabled).toBe(false);
     // iss is the bare origin (no /api/auth suffix) — see live discovery doc.
@@ -113,7 +113,7 @@ describe('config', () => {
 
   it('enables Portal OIDC when PORTAL_OIDC_ENABLED is truthy', async () => {
     process.env.PORTAL_OIDC_ENABLED = 'true';
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
     expect(config.auth.portal.enabled).toBe(true);
   });
 
@@ -121,7 +121,7 @@ describe('config', () => {
     for (const key of ['MENTRA_OIDC_ENABLED', 'MENTRA_OIDC_ISSUER', 'MENTRA_OIDC_CLIENT_ID', 'MENTRA_OIDC_SCOPES']) {
       delete process.env[key];
     }
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
 
     expect(config.auth.oidc.enabled).toBe(false);
     // Discovery base URL includes /api/auth (discovery appends /.well-known/...).
@@ -133,7 +133,7 @@ describe('config', () => {
   it('supports overriding the OIDC login client id (e.g. reuse ci-import-tools)', async () => {
     process.env.MENTRA_OIDC_ENABLED = 'true';
     process.env.MENTRA_OIDC_CLIENT_ID = 'ci-import-tools';
-    const { config } = await import('../config');
+    const { config } = await import('../config.ts');
     expect(config.auth.oidc.enabled).toBe(true);
     expect(config.auth.oidc.clientId).toBe('ci-import-tools');
   });
@@ -141,25 +141,25 @@ describe('config', () => {
   describe('owner allowlist (MENTRA_ALLOWED_USERS)', () => {
     it('defaults to an empty list (single-user appliance)', async () => {
       delete process.env.MENTRA_ALLOWED_USERS;
-      const { config } = await import('../config');
+      const { config } = await import('../config.ts');
       expect(config.auth.owners).toEqual([]);
     });
 
     it('parses a comma-separated list, trimming and lowercasing entries', async () => {
       process.env.MENTRA_ALLOWED_USERS = ' Liam@Example.com , wearer@example.com ';
-      const { config } = await import('../config');
+      const { config } = await import('../config.ts');
       expect(config.auth.owners).toEqual(['liam@example.com', 'wearer@example.com']);
     });
 
     it('drops empty entries so a stray comma can never mean "allow everyone"', async () => {
       process.env.MENTRA_ALLOWED_USERS = 'liam@example.com,,   ,';
-      const { config } = await import('../config');
+      const { config } = await import('../config.ts');
       expect(config.auth.owners).toEqual(['liam@example.com']);
     });
 
     it('accepts an OIDC subject as well as an email', async () => {
       process.env.MENTRA_ALLOWED_USERS = 'user_01HXYZ';
-      const { config } = await import('../config');
+      const { config } = await import('../config.ts');
       expect(config.auth.owners).toEqual(['user_01hxyz']);
     });
   });
@@ -167,13 +167,13 @@ describe('config', () => {
   describe('Companion Memory path prefix (CI_SERVER_MEMORY_PATH_PREFIX)', () => {
     it('defaults to /api (the gateway/Hub-fronted topology)', async () => {
       delete process.env.CI_SERVER_MEMORY_PATH_PREFIX;
-      const { config } = await import('../config');
+      const { config } = await import('../config.ts');
       expect(config.memory.pathPrefix).toBe('/api');
     });
 
     it('supports an empty prefix for a direct-to-API topology', async () => {
       process.env.CI_SERVER_MEMORY_PATH_PREFIX = '';
-      const { config } = await import('../config');
+      const { config } = await import('../config.ts');
       expect(config.memory.pathPrefix).toBe('');
     });
   });

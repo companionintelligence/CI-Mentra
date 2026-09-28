@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Pool } from 'pg';
-import { config } from '../config';
+import { config } from '../config.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'postgres' });
@@ -21,12 +21,18 @@ export function getPool(): Pool {
  *
  * The repo's docker-compose mounts the file into Postgres' initdb, but a Hub
  * marketplace install runs a bare Postgres, so the bridge brings its own
- * tables. The build copies schema.sql next to the compiled module; the src
- * fallback covers ts-node. Fail-open: a missing or unreachable database is
+ * tables. Paths resolve from the working directory (not `__dirname`, which
+ * ESM lacks): `src/` for Deno / ts-node, `dist/` for the tsc build, or an
+ * explicit MENTRA_SCHEMA_PATH. Fail-open: a missing or unreachable database is
  * logged, and only the Postgres-backed routes (/v1/responses) degrade.
  */
 export async function ensureSchema(): Promise<boolean> {
-  const candidates = [path.join(__dirname, 'schema.sql'), path.join(__dirname, '..', '..', 'src', 'store', 'schema.sql')];
+  const cwd = process.cwd();
+  const candidates = [
+    process.env.MENTRA_SCHEMA_PATH,
+    path.join(cwd, 'src', 'store', 'schema.sql'),
+    path.join(cwd, 'dist', 'store', 'schema.sql'),
+  ].filter((candidate): candidate is string => Boolean(candidate));
   const file = candidates.find((candidate) => fs.existsSync(candidate));
   if (!file) {
     logger.warn({ candidates }, 'schema.sql not found; skipping schema bootstrap');

@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { config } from '../config';
-import { getSession, SESSION_COOKIE } from '../auth/sessions';
-import type { AuthMethod } from './auth';
+import { type Request, type Response, type NextFunction } from 'express';
+import { config } from '../config.ts';
+import { getSession, SESSION_COOKIE } from '../auth/sessions.ts';
+import type { AuthMethod } from './auth.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'companion-auth' });

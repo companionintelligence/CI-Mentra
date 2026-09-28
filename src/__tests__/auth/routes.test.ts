@@ -20,7 +20,7 @@ const mockConfig = {
 };
 jest.mock('../../config', () => ({ config: mockConfig }));
 
-import { authRouter, encodeTx, decodeTx } from '../../auth/routes';
+import { authRouter, encodeTx, decodeTx } from '../../auth/routes.ts';
 
 function makeApp() {
   const app = express();

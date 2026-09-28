@@ -1,9 +1,9 @@
 import axios from 'axios';
 import FormData from 'form-data';
-import { config } from '../config';
-import { resolveProvider } from '../providers';
-import { TranscriptionRequest } from '../providers/types';
-import { CanonicalTurn } from '../canonical/types';
+import { config } from '../config.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { type TranscriptionRequest } from '../providers/types.ts';
+import { type CanonicalTurn } from '../canonical/types.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'stt' });

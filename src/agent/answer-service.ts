@@ -1,8 +1,8 @@
-import { config } from '../config';
-import { resolveProvider } from '../providers';
-import { normalizeChatCompletionToCanonical } from '../canonical/normalizer';
-import * as memory from '../memory/companion-memory';
-import * as history from './session-history';
+import { config } from '../config.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { normalizeChatCompletionToCanonical } from '../canonical/normalizer.ts';
+import * as memory from '../memory/companion-memory.ts';
+import * as history from './session-history.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'answer-service' });

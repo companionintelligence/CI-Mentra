@@ -1,4 +1,4 @@
-import { pcmToWav, concatPcmFrames } from '../../voice/pcm-to-wav';
+import { pcmToWav, concatPcmFrames } from '../../voice/pcm-to-wav.ts';
 
 describe('pcmToWav', () => {
   it('should produce a valid WAV header', () => {

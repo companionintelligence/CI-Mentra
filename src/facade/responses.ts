@@ -1,16 +1,16 @@
-import { Router, Request, Response } from 'express';
-import { normalizeResponsesRequestToCanonical, ResponsesRequest } from '../canonical/normalizer';
-import { resolveProvider } from '../providers';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { getOrCreateConversation, getConversationMessages, appendMessage } from '../store/postgres';
-import { CanonicalTurn, CanonicalMessage } from '../canonical/types';
-import { Provider } from '../providers/types';
+import { Router, type Request, type Response } from 'express';
+import { normalizeResponsesRequestToCanonical, type ResponsesRequest } from '../canonical/normalizer.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { type AuthenticatedRequest } from '../middleware/auth.ts';
+import { getOrCreateConversation, getConversationMessages, appendMessage } from '../store/postgres.ts';
+import { type CanonicalTurn, type CanonicalMessage } from '../canonical/types.ts';
+import { type Provider } from '../providers/types.ts';
 import { v4 as uuidv4 } from 'uuid';
 import pino from 'pino';
 
 const logger = pino({ name: 'facade-responses' });
 
-export const responsesRouter = Router();
+export const responsesRouter: Router = Router();
 
 responsesRouter.post('/', async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;

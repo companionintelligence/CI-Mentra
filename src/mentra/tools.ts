@@ -1,4 +1,4 @@
-import * as companionMemory from '../memory/companion-memory';
+import * as companionMemory from '../memory/companion-memory.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'mentra-tools' });

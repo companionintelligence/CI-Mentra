@@ -1,14 +1,14 @@
 import { AppServer, AppSession } from '@mentra/sdk';
 import type { Capabilities, LedColor, SpeakOptions, ToolCall } from '@mentra/sdk';
-import { config } from '../config';
-import { VadBuffer, UtteranceSegment } from '../voice/vad-buffer';
-import { transcribeAudio } from '../voice/stt';
-import { answer, parseRememberCommand, resolveDefaultModel } from '../agent/answer-service';
-import type { AnswerResult } from '../agent/answer-service';
-import * as sessionHistory from '../agent/session-history';
-import * as companionMemory from '../memory/companion-memory';
-import { resolveProvider } from '../providers';
-import { normalizeChatCompletionToCanonical } from '../canonical/normalizer';
+import { config } from '../config.ts';
+import { VadBuffer, type UtteranceSegment } from '../voice/vad-buffer.ts';
+import { transcribeAudio } from '../voice/stt.ts';
+import { answer, parseRememberCommand, resolveDefaultModel } from '../agent/answer-service.ts';
+import type { AnswerResult } from '../agent/answer-service.ts';
+import * as sessionHistory from '../agent/session-history.ts';
+import * as companionMemory from '../memory/companion-memory.ts';
+import { resolveProvider } from '../providers/index.ts';
+import { normalizeChatCompletionToCanonical } from '../canonical/normalizer.ts';
 import {
   handleToolCall,
   isTakePhotoSentinel,
@@ -16,7 +16,7 @@ import {
   recordCalendarEvent,
   clearCalendarEvents,
   ToolId,
-} from '../mentra/tools';
+} from '../mentra/tools.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'mentra-bridge' });
@@ -325,7 +325,7 @@ export class MentraBridge extends AppServer {
     });
   }
 
-  protected async onSession(session: AppSession, sessionId: string, userId: string): Promise<void> {
+  protected override async onSession(session: AppSession, sessionId: string, userId: string): Promise<void> {
     logger.info({ sessionId, userId }, 'New Mentra session started');
 
     let lastTranscript = '';
@@ -638,7 +638,7 @@ export class MentraBridge extends AppServer {
    * when the session isn't connected — keying memory on that would merge every
    * disconnected wearer into one bucket, so it is treated as absent.
    */
-  protected async onToolCall(toolCall: ToolCall): Promise<string | undefined> {
+  protected override async onToolCall(toolCall: ToolCall): Promise<string | undefined> {
     const activeSessionId = toolCall.activeSession?.getSessionId();
     const sessionId =
       activeSessionId && activeSessionId !== UNKNOWN_SESSION_ID ? activeSessionId : toolCall.userId;
@@ -672,7 +672,7 @@ export class MentraBridge extends AppServer {
     }
   }
 
-  protected async onStop(sessionId: string, userId: string, reason: string): Promise<void> {
+  protected override async onStop(sessionId: string, userId: string, reason: string): Promise<void> {
     logger.info({ sessionId, userId, reason }, 'Session stopped');
     // The session is really over now (not a reconnectable blip): release the VAD
     // buffer and drop short-term state so the next wearer starts clean.

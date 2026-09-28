@@ -19,7 +19,7 @@ const mockConfig = {
 };
 jest.mock('../../config', () => ({ config: mockConfig }));
 
-import { getContext, recall, writeTurn, writeMemory, isMemoryEnabled, clampRecallCount } from '../../memory/companion-memory';
+import { getContext, recall, writeTurn, writeMemory, isMemoryEnabled, clampRecallCount } from '../../memory/companion-memory.ts';
 
 beforeEach(() => {
   jest.clearAllMocks();

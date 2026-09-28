@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json",
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "dev": "deno run -A --watch src/index.ts",
+    "start": "deno run -A src/index.ts",
+    "build": "deno check src/index.ts",
+    "test": "npm test",
+    "lint": "deno lint src/",
+    "fmt": "deno fmt src/"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": [
+      "deno.window",
+      "deno.ns"
+    ]
+  },
+  "lint": {
+    "include": [
+      "src/"
+    ],
+    "exclude": [
+      "src/__tests__/"
+    ]
+  },
+  "fmt": {
+    "include": [
+      "src/"
+    ],
+    "singleQuote": true
+  },
+  "exclude": [
+    "dist/",
+    "node_modules/",
+    "coverage/"
+  ]
+}

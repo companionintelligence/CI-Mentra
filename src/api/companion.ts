@@ -1,13 +1,13 @@
 import { Router, type Request, type Response } from 'express';
-import { config } from '../config';
+import { config } from '../config.ts';
 import {
   requireCompanionAuth,
   resolveCompanionIdentity,
   type CompanionRequest,
-} from '../middleware/companion-auth';
-import * as answerService from '../agent/answer-service';
-import * as companionMemory from '../memory/companion-memory';
-import * as sessionHistory from '../agent/session-history';
+} from '../middleware/companion-auth.ts';
+import * as answerService from '../agent/answer-service.ts';
+import * as companionMemory from '../memory/companion-memory.ts';
+import * as sessionHistory from '../agent/session-history.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'companion-api' });
@@ -18,7 +18,7 @@ const logger = pino({ name: 'companion-api' });
  * calls these cookie-authenticated routes and the server fans out to Companion
  * Memory + the answer service on its behalf.
  */
-export const companionRouter = Router();
+export const companionRouter: Router = Router();
 
 /**
  * Namespace a session id under the caller.

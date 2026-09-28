@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import { applySetupCors, parseSetupOrigins, DEFAULT_SETUP_ORIGINS } from '../index';
+import { applySetupCors, parseSetupOrigins, DEFAULT_SETUP_ORIGINS } from '../http/cors.ts';
 
 function makeApp(origins = DEFAULT_SETUP_ORIGINS) {
   const app = express();

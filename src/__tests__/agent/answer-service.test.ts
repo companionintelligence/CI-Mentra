@@ -22,9 +22,9 @@ jest.mock('../../providers', () => ({
   resolveProvider: jest.fn(() => ({ name: 'ollama', chatCompletion })),
 }));
 
-import { answer, parseRememberCommand, resolveDefaultModel } from '../../agent/answer-service';
-import * as memory from '../../memory/companion-memory';
-import { resetSessions, getHistory } from '../../agent/session-history';
+import { answer, parseRememberCommand, resolveDefaultModel } from '../../agent/answer-service.ts';
+import * as memory from '../../memory/companion-memory.ts';
+import { resetSessions, getHistory } from '../../agent/session-history.ts';
 
 const mockedMemory = memory as jest.Mocked<typeof memory>;
 
