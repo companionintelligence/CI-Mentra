@@ -271,13 +271,15 @@ idempotent, and the output is byte-identical on a rebuild):
 
 | Step | What it adds |
 |------|--------------|
-| `scripts/inject-crosslinks.mjs` | `/app/` only: the "Demo: canned answers" strip, a footer with Companion Intelligence, Docs, **Buy Companion Core** and **Download Companion**, and a "Back to setup guide" link in place of the demo's Sign out. `public/index.html` itself stays the bridge's UI, untouched |
+| `scripts/inject-crosslinks.mjs` | `/app/` only: the "Demo: canned answers" strip, a footer with Companion Intelligence, Docs, **Buy Companion Core** and **Download Companion** (plus a line saying those two are for the Companion platform, not the preview), and a "Back to setup guide" link in place of the demo's Sign out. `public/index.html` itself stays the bridge's UI, untouched |
 | `scripts/inject-ga.mjs` | GA4 on every page when the `GA_MEASUREMENT_ID` repo variable is a valid `G-XXXX` id (no inline script: `/ga-init.js`), and reveals the footer's "uses Google Analytics" line |
-| `scripts/inject-seo.mjs` | `<title>`, canonical, description, icons, Open Graph/Twitter, JSON-LD, `sitemap.xml`, `robots.txt` |
+| `scripts/inject-seo.mjs` | `<title>`, canonical, description, icons, Open Graph/Twitter, JSON-LD, `sitemap.xml` (with `lastmod` from the newest git commit to any file that makes up the page), `robots.txt` |
 | `scripts/version-assets.mjs` | `?v=<hash>` on local CSS/JS, which the Worker serves as `immutable` |
 
-The raster icons in `site/public/` come from `site/public/icon.svg` via `scripts/make-icons.sh`
-(needs `rsvg-convert` and ImageMagick); they are committed, not built.
+The raster icons in `site/public/` come from `site/public/icon.svg` via `scripts/make-icons.sh`,
+and the 1200x630 share image `site/public/og.png` comes from `site/seo/og.svg` via
+`scripts/make-og.sh`. Both need `rsvg-convert` and ImageMagick (`brew install librsvg imagemagick`),
+and both outputs are committed, not built: edit the SVG, run the script, commit the SVG and the PNG.
 
 The pages link to <https://ci.computer>, <https://ci.computer/core> (Buy Companion Core),
 <https://ci.computer/download> (Download Companion) and the
@@ -287,8 +289,9 @@ so and does not word those buttons as if the Mentra app can be bought or downloa
 `site/src/headers.ts` holds the CSP: no inline script or style, and the Cloudflare Web Analytics
 beacon host is allowed because Cloudflare injects it.
 
-`.github/workflows/deploy-site.yml` deploys on pushes to `main` that touch `site/`,
-`public/`, the build scripts or `package.json`, and on manual dispatch. It needs the repo secrets
+`.github/workflows/deploy-site.yml` deploys on pushes to `main` that touch `site/`, `public/`,
+`scripts/build-site.sh`, `scripts/inject-*.mjs`, `scripts/version-assets.mjs`,
+`scripts/vendor-brand.sh` or the workflow file itself, and on manual dispatch. It needs the repo secrets
 `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, plus Workers Routes: Edit on the
 `ci.computer` zone) and `CLOUDFLARE_ACCOUNT_ID`, set on the `production` environment.
 

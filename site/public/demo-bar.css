@@ -43,6 +43,7 @@ body { display: flex; flex-direction: column; min-height: 100dvh; height: auto; 
   text-align: center;
 }
 .demo-foot__nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 16px; }
+.demo-foot__note { margin: 2px 0 4px; }
 .demo-foot__ga { margin: 0 0 4px; }
 
 .demo-bar a,
