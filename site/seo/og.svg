@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="g" cx="82%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#16403c"/>
+      <stop offset="1" stop-color="#0a1312"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <g transform="translate(860 110) scale(9)" fill="none" stroke="#5fbdc3">
+    <circle cx="16" cy="16" r="13" stroke-width="3"/>
+    <circle cx="16" cy="16" r="4.5" fill="#5fbdc3" stroke="none"/>
+  </g>
+  <text x="80" y="120" font-family="Helvetica, Arial, sans-serif" font-size="26" letter-spacing="4" fill="#72ddd4">COMPANION INTELLIGENCE</text>
+  <text x="80" y="300" font-family="Helvetica, Arial, sans-serif" font-size="92" font-weight="700" fill="#edf6f0">Companion</text>
+  <text x="80" y="400" font-family="Helvetica, Arial, sans-serif" font-size="92" font-weight="700" fill="#5fbdc3">for Mentra</text>
+  <text x="80" y="500" font-family="Helvetica, Arial, sans-serif" font-size="34" fill="#c5e8dc">Your companion, in your glasses.</text>
+  <text x="80" y="570" font-family="Helvetica, Arial, sans-serif" font-size="26" fill="#8fb3ae">mentra.ci.computer</text>
+</svg>
