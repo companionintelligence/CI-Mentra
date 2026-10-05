@@ -19,4 +19,7 @@ cp -R "$ROOT/public/brand" "$OUT/brand"
 # Google Analytics 4: no-op unless GA_MEASUREMENT_ID is set to a valid G-XXXX id.
 node "$ROOT/scripts/inject-ga.mjs" "$OUT"
 
+# SEO: canonical/OG/Twitter/JSON-LD on every page, sitemap.xml, robots.txt (idempotent).
+node "$ROOT/scripts/inject-seo.mjs" "$OUT"
+
 echo "built $(find "$OUT" -type f | wc -l | tr -d ' ') files into site/dist"
