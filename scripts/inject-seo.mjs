@@ -19,14 +19,17 @@ const OG_IMAGE = `${ORIGIN}/og.png`;
 const ORG = { '@type': 'Organization', '@id': 'https://ci.computer/#organization', name: SITE_NAME, url: 'https://ci.computer' };
 const WEBSITE = { '@type': 'WebSite', '@id': `${ORIGIN}/#website`, name: 'Companion for Mentra', url: `${ORIGIN}/`, publisher: { '@id': ORG['@id'] } };
 
-// file (relative to dist) -> page metadata. `src` is the repo file used for lastmod.
-// /app/ keeps its trailing slash: the Worker uses html_handling "auto-trailing-slash",
-// so /app 308-redirects to /app/ and the slash form is the real, canonical URL.
+// file (relative to dist) -> page metadata. `src` lists the repo paths the page is made of (its HTML,
+// the CSS/JS it loads and the injectors that add visible content); the sitemap lastmod is the date of
+// the newest commit that touched any of them.
+// /app/ keeps its trailing slash: the Worker uses html_handling "auto-trailing-slash", so /app
+// redirects to /app/ (a 307 today; the status is the platform's choice, not ours) and the slash
+// form is the real, canonical URL.
 const PAGES = [
   {
     file: 'index.html',
     path: '/',
-    src: 'site/public/index.html',
+    src: ['site/public/index.html', 'site/public/site.css', 'site/public/env-builder.js', 'site/public/setup.js', 'scripts/inject-seo.mjs'],
     title: 'Companion for Mentra: setup guide | Companion Intelligence',
     name: 'Companion for Mentra',
     // 160 characters or fewer, so search results do not truncate it (checked by the site tests).
@@ -36,7 +39,7 @@ const PAGES = [
   {
     file: 'app/index.html',
     path: '/app/',
-    src: 'public/index.html',
+    src: ['public', 'site/public/demo-bar.css', 'scripts/inject-crosslinks.mjs', 'scripts/inject-seo.mjs'],
     title: 'Companion demo for Mentra | Companion Intelligence',
     name: 'Companion demo for Mentra',
     description:
@@ -55,10 +58,12 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g
 const escText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const jsonLd = (obj) => JSON.stringify(obj).replace(/</g, '\\u003c');
 
-function lastmod(src) {
-  if (!src) return null;
+// Date (YYYY-MM-DD) of the newest commit touching any of `srcs`; null when git has no answer.
+// The deploy workflow checks out full history, so this is a real date and not the deploy date.
+function lastmod(srcs) {
+  if (!srcs || srcs.length === 0) return null;
   try {
-    const out = execFileSync('git', ['log', '-1', '--format=%cs', '--', src], { cwd: root, encoding: 'utf8' }).trim();
+    const out = execFileSync('git', ['log', '-1', '--format=%cs', '--', ...srcs], { cwd: root, encoding: 'utf8' }).trim();
     return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null;
   } catch {
     return null;

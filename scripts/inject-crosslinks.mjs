@@ -6,7 +6,8 @@
 // source file must not carry demo-only chrome. This step adds it to the built copy only:
 //
 //   * a slim "Demo: canned answers, nothing is saved" strip with a link back to the setup guide
-//   * a footer with ci.computer, Docs, Buy Companion Core, Download Companion and the privacy policy
+//   * a footer with ci.computer, Docs, Buy Companion Core, Download Companion and the privacy policy,
+//     plus a line saying those two buttons are for the Companion platform, not the Mentra preview
 //   * "Sign out" (which on the demo only bounces to /) becomes a plain link back to the setup guide
 //   * a preload for the canon tokens, so they load beside styles.css instead of behind its @import
 //
@@ -44,6 +45,7 @@ const FOOT = `<footer class="demo-foot">
     <a href="${LINKS.docs}">Docs</a>
     <a href="${LINKS.privacy}">Privacy policy</a>
   </nav>
+  <p class="demo-foot__note">Buy and Download are for the Companion platform itself. Companion for Mentra can’t be installed yet.</p>
   <p class="demo-foot__ga" data-ga-notice hidden>This site uses Google Analytics.</p>
 </footer>`;
 

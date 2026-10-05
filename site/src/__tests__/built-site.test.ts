@@ -42,6 +42,9 @@ function snapshot(): Record<string, string> {
 }
 
 const read = (rel: string): string => readFileSync(join(DIST, rel), 'utf8');
+/** Date (YYYY-MM-DD) of the newest commit touching any of the repo paths, as the sitemap computes it. */
+const gitDate = (...paths: string[]): string =>
+  execFileSync('git', ['log', '-1', '--format=%cs', '--', ...paths], { cwd: ROOT, encoding: 'utf8' }).trim();
 const hrefs = (html: string): string[] => [...html.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)].map((m) => m[1]);
 const meta = (html: string, attr: string, key: string): string | undefined =>
   new RegExp(`<meta\\s+${attr}="${key}"\\s+content="([^"]*)"`).exec(html)?.[1];
@@ -72,6 +75,19 @@ describe('built site', () => {
       const html = read(file);
       expect(html).toContain('>Buy Companion Core</a>');
       expect(html).toContain('>Download Companion</a>');
+    });
+
+    it('says the Buy and Download links are for the Companion platform, not the Mentra preview', () => {
+      // The page also says Companion for Mentra cannot be installed yet, so a bare "Download
+      // Companion" in the footer must not read as a way to get it.
+      const html = read(file);
+      const notes = [...html.matchAll(/class="(?:foot__note|demo-foot__note)">([^<]*)</g)].map((m) => m[1]);
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toContain('Companion platform itself');
+      expect(notes[0]).toContain('Companion for Mentra can’t be installed yet.');
+      const noteAt = html.indexOf(notes[0]);
+      const downloadAt = html.lastIndexOf('>Download Companion</a>');
+      expect(Math.abs(noteAt - downloadAt)).toBeLessThan(600);
     });
 
     it('has no inline script or style, so the CSP can stay strict', () => {
@@ -218,6 +234,56 @@ describe('built site', () => {
     expect(robots).toContain('Sitemap: https://mentra.ci.computer/sitemap.xml');
     expect(robots).toContain('Disallow: /healthz');
     expect(robots).not.toMatch(/Disallow:\s*\/api/);
+  });
+
+  it('dates each sitemap entry from every file the page is made of, not just its HTML', () => {
+    const lastmods = Object.fromEntries(
+      [...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc><lastmod>([^<]+)<\/lastmod>/g)].map((m) => [m[1], m[2]])
+    );
+    const home = lastmods['https://mentra.ci.computer/'];
+    const app = lastmods['https://mentra.ci.computer/app/'];
+    expect(home).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(app).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // ISO dates compare as strings. A change to only the CSS or JS of a page must move its lastmod.
+    for (const f of ['index.html', 'site.css', 'env-builder.js', 'setup.js']) {
+      expect(home >= gitDate(`site/public/${f}`)).toBe(true);
+    }
+    expect(home >= gitDate('scripts/inject-seo.mjs')).toBe(true);
+    for (const p of ['public/index.html', 'public/app.js', 'public/styles.css', 'site/public/demo-bar.css', 'scripts/inject-crosslinks.mjs']) {
+      expect(app >= gitDate(p)).toBe(true);
+    }
+  });
+
+  it('ships a share image that is a 1200x630 PNG, as the og:image tags say', () => {
+    const png = readFileSync(join(DIST, 'og.png'));
+    expect(png.subarray(1, 4).toString('latin1')).toBe('PNG');
+    expect(png.readUInt32BE(16)).toBe(1200);
+    expect(png.readUInt32BE(20)).toBe(630);
+    for (const file of Object.values(pages)) {
+      const html = read(file);
+      if (file === '404.html') continue;
+      expect(meta(html, 'property', 'og:image')).toBe('https://mentra.ci.computer/og.png');
+      expect(meta(html, 'property', 'og:image:width')).toBe('1200');
+      expect(meta(html, 'property', 'og:image:height')).toBe('630');
+    }
+    // The PNG is committed, so the way to rebuild it must exist and be written down.
+    expect(existsSync(join(ROOT, 'site', 'seo', 'og.svg'))).toBe(true);
+    expect(existsSync(join(ROOT, 'scripts', 'make-og.sh'))).toBe(true);
+    expect(readFileSync(join(ROOT, 'README.md'), 'utf8')).toContain('scripts/make-og.sh');
+  });
+
+  it('README lists the same deploy triggers as the workflow', () => {
+    const workflow = readFileSync(join(ROOT, '.github', 'workflows', 'deploy-site.yml'), 'utf8');
+    const paths = [...(/\n {4}paths:\n((?: {6}- '[^']+'\n)+)/.exec(workflow)?.[1] ?? '').matchAll(/- '([^']+)'/g)].map((m) => m[1]);
+    expect(paths.length).toBeGreaterThan(3);
+    const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
+    const sentence = /deploy-site\.yml`[^]*?on manual dispatch/.exec(readme)?.[0] ?? '';
+    expect(sentence).not.toBe('');
+    for (const p of paths.filter((x) => !x.startsWith('.github/'))) {
+      const shown = p.replace(/\/\*\*$/, '/');
+      expect(sentence).toContain(`\`${shown}\``);
+    }
+    expect(sentence).not.toContain('package.json');
   });
 
   it('ships a valid manifest whose icons exist', () => {

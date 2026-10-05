@@ -156,6 +156,7 @@ fieldset > .note { margin: 0; font-size: 0.9rem; }
 .foot__grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 24px; }
 @media (max-width: 720px) { .foot__grid { grid-template-columns: 1fr 1fr; } .foot__about { grid-column: 1 / -1; } }
 .foot__col p { margin: 6px 0 0; }
+.foot__col .foot__note { margin: 0 0 8px; }
 .foot__h { margin: 0 0 6px; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-soft); }
 .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .foot a { color: var(--text-dim); display: inline-block; padding: 4px 0; }
