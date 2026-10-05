@@ -5,9 +5,10 @@
 /** Only the bridge health probe on the setup page talks to another origin. */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self'",
+  // Google Analytics 4: gtag.js script + beacon pixels (collect requests use connect-src).
+  "script-src 'self' https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  "img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com",
   "connect-src 'self' http: https:",
   "media-src 'self' blob:",
   "frame-ancestors 'none'",

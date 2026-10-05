@@ -39,8 +39,8 @@ describe('site worker', () => {
     expect(res.headers.get('content-type')).toBe('text/html');
   });
 
-  it('keeps scripts same-origin only', () => {
-    expect(CONTENT_SECURITY_POLICY).toContain("script-src 'self'");
+  it('keeps scripts same-origin plus gtag.js only', () => {
+    expect(CONTENT_SECURITY_POLICY).toContain("script-src 'self' https://www.googletagmanager.com;");
     expect(CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");
   });
 });

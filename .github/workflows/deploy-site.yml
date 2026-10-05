@@ -41,6 +41,9 @@ jobs:
       - name: Test site worker + env builder
         run: npx jest site
       - name: Build assets
+        env:
+          # Optional GA4 measurement ID (G-XXXX); unset = no analytics emitted.
+          GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
         run: npm run site:build
       - name: Deploy
         env:
