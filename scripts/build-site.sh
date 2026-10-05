@@ -16,4 +16,7 @@ cp -R "$ROOT/site/public/." "$OUT/"
 cp -R "$ROOT/public/." "$OUT/app/"
 cp -R "$ROOT/public/brand" "$OUT/brand"
 
+# Google Analytics 4: no-op unless GA_MEASUREMENT_ID is set to a valid G-XXXX id.
+node "$ROOT/scripts/inject-ga.mjs" "$OUT"
+
 echo "built $(find "$OUT" -type f | wc -l | tr -d ' ') files into site/dist"
