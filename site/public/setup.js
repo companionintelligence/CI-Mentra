@@ -10,6 +10,7 @@
   var envOut = document.getElementById('env-out');
   var cmdOut = document.getElementById('cmd-out');
   var problemsEl = document.getElementById('problems');
+  var lastProblemsHtml = null;
 
   function esc(value) {
     return String(value == null ? '' : value)
@@ -42,9 +43,15 @@
     envOut.textContent = Env.build(data);
     cmdOut.textContent = Env.commands(data);
     var problems = Env.validate(data);
-    problemsEl.innerHTML = problems.length
+    var html = problems.length
       ? '<ul>' + problems.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>'
       : '<p class="ok">Looks complete.</p>';
+    // #problems is a live region, so only touch it when the text really changes:
+    // rewriting it on every keystroke makes screen readers re-announce the same list.
+    if (html !== lastProblemsHtml) {
+      lastProblemsHtml = html;
+      problemsEl.innerHTML = html;
+    }
   }
 
   function randomKey(bytes) {

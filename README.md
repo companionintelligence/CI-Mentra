@@ -260,14 +260,35 @@ useful for iterating on the UI before a `ci-mentra` client is registered in CI-P
 | `/healthz` | Site liveness |
 
 ```bash
-npm run site:build    # assemble site/dist (site/public + public/ as /app)
+npm run site:build    # assemble site/dist (site/public + public/ as /app), then the steps below
 npm run site:dev      # wrangler dev on :8787
 npm run site:deploy   # wrangler deploy to mentra.ci.computer (custom domain route)
-npx jest site         # worker, demo BFF and env-builder tests
+npx jest site/src     # worker, demo BFF, env-builder and built-output tests
 ```
 
+`scripts/build-site.sh` copies the files into `site/dist` and then runs, in order (each is
+idempotent, and the output is byte-identical on a rebuild):
+
+| Step | What it adds |
+|------|--------------|
+| `scripts/inject-crosslinks.mjs` | `/app/` only: the "Demo: canned answers" strip, a footer with Companion Intelligence, Docs, **Buy Companion Core** and **Download Companion**, and a "Back to setup guide" link in place of the demo's Sign out. `public/index.html` itself stays the bridge's UI, untouched |
+| `scripts/inject-ga.mjs` | GA4 on every page when the `GA_MEASUREMENT_ID` repo variable is a valid `G-XXXX` id (no inline script: `/ga-init.js`), and reveals the footer's "uses Google Analytics" line |
+| `scripts/inject-seo.mjs` | `<title>`, canonical, description, icons, Open Graph/Twitter, JSON-LD, `sitemap.xml`, `robots.txt` |
+| `scripts/version-assets.mjs` | `?v=<hash>` on local CSS/JS, which the Worker serves as `immutable` |
+
+The raster icons in `site/public/` come from `site/public/icon.svg` via `scripts/make-icons.sh`
+(needs `rsvg-convert` and ImageMagick); they are committed, not built.
+
+The pages link to <https://ci.computer>, <https://ci.computer/core> (Buy Companion Core),
+<https://ci.computer/download> (Download Companion) and the
+[Mentra Live docs](https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live).
+Companion for Mentra is a **developer preview** that cannot be installed yet, so the site says
+so and does not word those buttons as if the Mentra app can be bought or downloaded.
+`site/src/headers.ts` holds the CSP: no inline script or style, and the Cloudflare Web Analytics
+beacon host is allowed because Cloudflare injects it.
+
 `.github/workflows/deploy-site.yml` deploys on pushes to `main` that touch `site/`,
-`public/` or the build script, and on manual dispatch. It needs the repo secrets
+`public/`, the build scripts or `package.json`, and on manual dispatch. It needs the repo secrets
 `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, plus Workers Routes: Edit on the
 `ci.computer` zone) and `CLOUDFLARE_ACCOUNT_ID`, set on the `production` environment.
 

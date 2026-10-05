@@ -12,7 +12,7 @@ function parse(env: string): Record<string, string> {
 }
 
 describe('env-builder', () => {
-  const base = { mentraApiKey: 'mk', facadeApiKey: 'fk', memoryKey: 'k'.repeat(64) };
+  const base = { mentraApiKey: 'mk', facadeApiKey: 'fk', memoryKey: 'k'.repeat(64), speechUrl: 'http://speech:8000' };
 
   it('hub mode bootstraps inference from the Hub under the ci-mentra slug', () => {
     const env = parse(MentraEnv.build({ ...base, mode: 'hub' }));
@@ -64,5 +64,59 @@ describe('env-builder', () => {
   it('commands differ per mode', () => {
     expect(MentraEnv.commands({ mode: 'tailscale' })).toContain('tailscale funnel 7010');
     expect(MentraEnv.commands({ mode: 'compose' })).toContain('docker compose up -d --build');
+  });
+
+  it('does not send visitors to a repository they cannot open', () => {
+    for (const mode of ['hub', 'compose', 'tailscale']) {
+      const text: string = MentraEnv.commands({ mode });
+      expect(text).not.toContain('github.com/companionintelligence');
+      expect(text).toContain('https://ci.computer/gg');
+      expect(text).toContain('https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live');
+    }
+    expect(MentraEnv.commands({ mode: 'compose' })).toContain('git clone <repository URL you were given>');
+  });
+
+  describe('speech-to-text', () => {
+    it('is required in every mode: the bridge has none of its own', () => {
+      for (const mode of ['hub', 'compose', 'tailscale']) {
+        const problems: string[] = MentraEnv.validate({ ...base, mode, speechUrl: '' });
+        expect(problems.join(' ')).toMatch(/speech-to-text URL/i);
+      }
+    });
+
+    it('writes the endpoint the bridge reads, and a comment when it is missing', () => {
+      const env = parse(MentraEnv.build({ ...base, mode: 'hub', speechUrl: 'http://whisper:8000/' }));
+      expect(env.OPENAI_BASE_URL).toBe('http://whisper:8000');
+      expect(env.VLLM_BASE_URL).toBe('http://whisper:8000');
+      expect(env.TTS_PROVIDER).toBe('mentra');
+      const missing = MentraEnv.build({ ...base, speechUrl: '' });
+      expect(parse(missing).OPENAI_BASE_URL).toBeUndefined();
+      expect(missing).toMatch(/# Not set: the bridge has no speech-to-text of its own/);
+    });
+
+    it('drops a trailing /v1, which the bridge adds itself', () => {
+      const env = parse(MentraEnv.build({ ...base, speechUrl: 'http://whisper:8000/v1/' }));
+      expect(env.OPENAI_BASE_URL).toBe('http://whisper:8000');
+      expect((MentraEnv.validate({ ...base, speechUrl: 'http://whisper:8000/v1' }) as string[]).join(' ')).toMatch(/trailing \/v1/);
+    });
+
+    it('names the field, not the variable, when a URL is malformed', () => {
+      const problems: string[] = MentraEnv.validate({ ...base, speechUrl: 'whisper:8000', hubUrl: 'nope' });
+      expect(problems).toContain('Speech-to-text URL must start with http:// or https://');
+      expect(problems).toContain('Companion Hub URL must start with http:// or https://');
+    });
+  });
+
+  it('flags the default database login as dev-only in the file it writes', () => {
+    const out: string = MentraEnv.build({ ...base });
+    expect(out).toMatch(/default postgres\/postgres login/);
+    expect(out).toMatch(/Change it \(and POSTGRES_PASSWORD in docker-compose.yml\)/);
+  });
+
+  it('uses public product names in the file header', () => {
+    const out: string = MentraEnv.build({ ...base });
+    expect(out).toContain('# Companion for Mentra bridge');
+    expect(out).not.toContain('CI-Mentra');
+    expect(out).not.toContain('CI-Portal');
   });
 });

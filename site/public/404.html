@@ -3,16 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a1312" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f1f7f6" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
 <title>Not found · Companion for Mentra</title>
+<link rel="stylesheet" href="/brand/tokens/tokens.css">
 <link rel="stylesheet" href="/site.css">
 </head>
 <body>
-<main class="wrap hero">
+<a class="skip" href="#main">Skip to main content</a>
+
+<header class="top">
+  <div class="wrap top__row">
+    <div class="brandrow">
+      <a class="brand" href="https://ci.computer" aria-label="Companion Intelligence home (ci.computer)">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="16" cy="16" r="4.5" fill="currentColor"/></svg>
+        <span>Companion<span class="brand__more"> Intelligence</span></span>
+      </a>
+      <a class="brand-sub" href="/">for Mentra</a>
+    </div>
+    <nav class="top__nav" aria-label="Sections">
+      <a href="https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live">Docs</a>
+      <a class="btn btn--ghost" href="/app/">Try the demo</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1" class="wrap hero">
   <p class="eyebrow">404</p>
   <h1>Nothing here.</h1>
-  <p class="lede">That page doesn't exist.</p>
+  <p class="lede">That page doesn’t exist.</p>
   <div class="hero__cta"><a class="btn btn--primary" href="/">Back to setup</a><a class="btn" href="/app/">Open the demo</a></div>
+  <p class="note get404">Looking for Companion itself? <a href="https://ci.computer/core">Buy Companion Core</a> or <a href="https://ci.computer/download">Download Companion</a>.</p>
 </main>
+
+<footer class="foot">
+  <nav class="wrap foot__grid" aria-label="Footer">
+    <div class="foot__col foot__about">
+      <a class="foot__brand" href="https://ci.computer">Companion Intelligence</a>
+      <p>Companion for Mentra is part of the Companion Intelligence platform.</p>
+    </div>
+    <div class="foot__col">
+      <h2 class="foot__h">Get Companion</h2>
+      <ul>
+        <li><a href="https://ci.computer/core">Buy Companion Core</a></li>
+        <li><a href="https://ci.computer/download">Download Companion</a></li>
+      </ul>
+    </div>
+    <div class="foot__col">
+      <h2 class="foot__h">Learn and get help</h2>
+      <ul>
+        <li><a href="https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live">Docs</a></li>
+        <li><a href="/app/">Demo UI</a></li>
+        <li><a href="https://ci.computer/support">Support</a></li>
+        <li><a href="https://ci.computer/gg">Discord</a></li>
+      </ul>
+    </div>
+    <div class="foot__col">
+      <h2 class="foot__h">Legal</h2>
+      <ul>
+        <li><a href="https://ci.computer/privacy-policy">Privacy policy</a></li>
+        <li><a href="https://ci.computer/terms-of-service">Terms of service</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="wrap foot__fine">
+    <p>© Lifescope Inc.</p>
+    <p data-ga-notice hidden>This site uses Google Analytics to measure how it is used. See the <a href="https://ci.computer/privacy-policy">privacy policy</a>.</p>
+  </div>
+</footer>
 </body>
 </html>

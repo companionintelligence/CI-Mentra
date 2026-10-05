@@ -1,5 +1,5 @@
-/* mentra.ci.computer — setup site. Shares the canon tokens with the companion UI. */
-@import url("brand/tokens/tokens.css");
+/* mentra.ci.computer — setup site. Shares the canon tokens with the companion UI.
+   The pages link brand/tokens/tokens.css next to this file (not @import) so both load in parallel. */
 
 :root {
   color-scheme: dark;
@@ -59,12 +59,17 @@ h3 { font-size: 1.1rem; }
 
 .top { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .top__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; flex-wrap: wrap; }
+.brandrow { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--accent); text-decoration: none; font-weight: 700; }
-.brand em { font-style: normal; color: var(--text-dim); font-weight: 500; }
+.brand-sub { color: var(--text-dim); text-decoration: none; font-weight: 500; }
+.brand-sub:hover { color: var(--text); }
 .top__nav { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .top__nav a:not(.btn) { color: var(--text-dim); text-decoration: none; font-size: 0.95rem; }
 .top__nav a:not(.btn):hover { color: var(--text); }
+.top__nav .btn { min-height: 40px; }
 @media (max-width: 640px) { .top__nav a:not(.btn) { display: none; } }
+@media (max-width: 520px) { .brand-sub { display: none; } }
+@media (max-width: 420px) { .brand__more { display: none; } }
 
 .hero { padding: 72px 16px 40px; }
 .eyebrow { color: var(--accent-soft); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 12px; }
@@ -73,6 +78,22 @@ h3 { font-size: 1.1rem; }
 
 .block { padding: 40px 16px; border-top: 1px solid var(--line); }
 .note { color: var(--text-dim); }
+main:focus { outline: none; }
+.get404 { margin-top: 32px; }
+
+/* Developer-preview notice, kept honest and near the top. */
+.status { margin: 0 0 32px; max-width: 46rem; padding: 16px 18px; border: 1px solid var(--line-strong); border-left: 4px solid var(--warn); border-radius: var(--r); background: var(--surface); }
+.status__title { margin: 0 0 0.4em; font-size: 1rem; color: var(--warn); }
+.status p { margin: 0.5em 0 0; color: var(--text-dim); font-size: 0.95rem; }
+
+/* Buy / download callout band under the hero. */
+.getband { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px 32px; padding: 24px; margin: 8px 0 24px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r); }
+.getband__copy { flex: 1 1 22rem; min-width: 0; }
+.getband__copy h2 { margin: 0 0 0.3em; font-size: 1.3rem; }
+.getband__copy p { margin: 0; color: var(--text-dim); }
+.getband__cta { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.tag { display: inline-block; margin-left: 6px; padding: 1px 9px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--warn); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em; vertical-align: middle; white-space: nowrap; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
 .btn:hover { border-color: var(--accent-soft); }
@@ -103,6 +124,9 @@ legend { padding: 0 6px; font-weight: 700; color: var(--accent); }
 .inline input { flex: 1; min-width: 0; }
 input, select { width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); font: inherit; font-family: var(--mono); font-size: 0.9rem; }
 .check { display: flex; gap: 10px; align-items: center; }
+.check small { color: var(--text-dim); }
+fieldset > .note { margin: 0; font-size: 0.9rem; }
+.steps .note { font-size: 0.92rem; }
 .check input { width: 20px; min-height: 20px; }
 .seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 8px; }
 .seg label { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; cursor: pointer; }
@@ -128,5 +152,16 @@ input, select { width: 100%; min-height: 44px; padding: 8px 12px; border-radius:
 .pill--warn b { color: var(--warn); }
 .pill--bad b { color: var(--bad); }
 
-.foot { padding: 32px 16px 48px; border-top: 1px solid var(--line); color: var(--text-dim); font-size: 0.9rem; }
+.foot { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--text-dim); font-size: 0.9rem; }
+.foot__grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 24px; }
+@media (max-width: 720px) { .foot__grid { grid-template-columns: 1fr 1fr; } .foot__about { grid-column: 1 / -1; } }
+.foot__col p { margin: 6px 0 0; }
+.foot__h { margin: 0 0 6px; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-soft); }
+.foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.foot a { color: var(--text-dim); display: inline-block; padding: 4px 0; }
+.foot a:hover { color: var(--text); }
+.foot .foot__brand { color: var(--accent); font-weight: 700; text-decoration: none; }
+.foot__fine { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 24px; }
+.foot__fine p { margin: 0; }
+.foot__fine a { padding: 0; }
 section[id] { scroll-margin-top: 72px; }

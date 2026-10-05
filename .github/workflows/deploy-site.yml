@@ -2,7 +2,8 @@ name: Deploy mentra.ci.computer
 
 # Setup guide + companion UI demo, served by a Cloudflare Worker with static
 # assets (site/wrangler.jsonc). Deploys when the site, the companion UI it
-# embeds, or the build script change on main; can also be dispatched by hand.
+# embeds, or the build scripts (including the SEO/GA/cross-link injectors) change
+# on main; can also be dispatched by hand.
 on:
   push:
     branches: [main]
@@ -10,6 +11,9 @@ on:
       - 'site/**'
       - 'public/**'
       - 'scripts/build-site.sh'
+      - 'scripts/inject-*.mjs'
+      - 'scripts/version-assets.mjs'
+      - 'scripts/vendor-brand.sh'
       - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
 
@@ -53,9 +57,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@4 deploy --config site/wrangler.jsonc --var SITE_VERSION:${GITHUB_SHA::7}
       - name: Smoke test
+        # A first deploy of the custom domain can take a few minutes for DNS and the
+        # certificate to go live, so retry patiently (about 5 minutes) before failing.
         run: |
-          for i in 1 2 3 4 5 6; do
-            curl -fsS https://mentra.ci.computer/healthz && exit 0
-            sleep 10
-          done
-          echo "::error::mentra.ci.computer/healthz did not come up"; exit 1
+          curl -fsS --retry 30 --retry-delay 10 --retry-all-errors --connect-timeout 10 --max-time 20 \
+            https://mentra.ci.computer/healthz
