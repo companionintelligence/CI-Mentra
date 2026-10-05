@@ -36,6 +36,11 @@
     return clean(value).replace(/\/+$/, '');
   }
 
+  /** The bridge appends /v1/audio/transcriptions itself, so a trailing /v1 is always wrong. */
+  function speechBase(value) {
+    return trimUrl(value).replace(/\/v1$/i, '');
+  }
+
   function line(key, value) {
     var v = clean(value);
     return key + '=' + (/[\s#"'$`\\]/.test(v) ? '"' + v.replace(/(["\\$`])/g, '\\$1') + '"' : v);
@@ -63,11 +68,14 @@
     var problems = [];
     if (!o.mentraApiKey) problems.push('MentraOS API key is required — copy it from the MentraOS developer console.');
     if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/i.test(o.packageName)) problems.push('Package name should look like com.example.app and match the console.');
-    if (o.memoryEnabled && !o.memoryKey) problems.push('Companion Memory is on but no CI-Server memory key was given — memory will stay off.');
+    if (o.memoryEnabled && !o.memoryKey) problems.push('Companion Memory is on but no memory key was given — memory will stay off.');
     if (!o.facadeApiKey && !o.oidcEnabled) problems.push('No façade key and no sign-in: the /v1 API and companion UI would be open. Generate a key.');
-    ['hubUrl', 'ollamaUrl', 'ciServerUrl', 'speechUrl'].forEach(function (k) {
-      if (o[k] && !/^https?:\/\/[^\s/]+/i.test(o[k])) problems.push(k + ' must start with http:// or https://');
+    if (!o.speechUrl) problems.push('No speech-to-text URL: the bridge has no speech-to-text of its own, so without one it cannot transcribe what you say. Point it at an OpenAI-compatible server, such as a local Whisper server.');
+    var urlLabels = { hubUrl: 'Companion Hub URL', ollamaUrl: 'Ollama URL', ciServerUrl: 'Companion Memory URL', speechUrl: 'Speech-to-text URL' };
+    Object.keys(urlLabels).forEach(function (k) {
+      if (o[k] && !/^https?:\/\/[^\s/]+/i.test(o[k])) problems.push(urlLabels[k] + ' must start with http:// or https://');
     });
+    if (/\/v1\/*$/i.test(o.speechUrl)) problems.push('Speech-to-text URL: leave off the trailing /v1, the bridge adds it. It is removed from the file below.');
     return problems;
   }
 
@@ -76,8 +84,8 @@
     var out = [];
     function section(title) { out.push('', '# --- ' + title + ' ---'); }
 
-    out.push('# CI-Mentra bridge — generated at mentra.ci.computer (' + o.mode + ' setup).');
-    out.push('# Keep this file private: it holds your MentraOS and CI-Server keys.');
+    out.push('# Companion for Mentra bridge — generated at mentra.ci.computer (' + o.mode + ' setup).');
+    out.push('# Keep this file private: it holds your MentraOS and Companion Memory keys.');
 
     section('MentraOS');
     out.push(line('MENTRA_RUNTIME_MODE', 'cloud'));
@@ -90,7 +98,7 @@
     out.push(line('FACADE_API_KEY', o.facadeApiKey));
     out.push(line('MENTRA_SESSION_SECRET', o.sessionSecret));
 
-    section('Sign-in (CI-Portal OIDC)');
+    section('Sign in with Companion Intelligence (OIDC)');
     out.push(line('MENTRA_OIDC_ENABLED', o.oidcEnabled ? 'true' : 'false'));
     if (o.oidcEnabled) {
       out.push(line('MENTRA_OIDC_ISSUER', 'https://hub.companionintelligence.com/api/auth'));
@@ -114,11 +122,14 @@
     out.push(line('OLLAMA_API_KEY', 'ollama'));
     out.push(line('LLM_DEFAULT_CHAT_MODEL', o.model));
 
+    section('Speech-to-text (OpenAI-compatible)');
     if (o.speechUrl) {
-      section('Local speech (OpenAI-compatible STT/TTS)');
-      out.push(line('OPENAI_BASE_URL', trimUrl(o.speechUrl)));
-      out.push(line('VLLM_BASE_URL', trimUrl(o.speechUrl)));
+      out.push(line('OPENAI_BASE_URL', speechBase(o.speechUrl)));
+      out.push(line('VLLM_BASE_URL', speechBase(o.speechUrl)));
       out.push(line('OPENAI_API_KEY', 'local-only'));
+    } else {
+      out.push('# Not set: the bridge has no speech-to-text of its own and cannot transcribe speech without one.');
+      out.push('# Set OPENAI_BASE_URL (and VLLM_BASE_URL) to an OpenAI-compatible server, such as a local Whisper server.');
     }
     out.push(line('TTS_PROVIDER', 'mentra'));
 
@@ -130,6 +141,9 @@
     out.push(line('MENTRA_MEMORY_PLATFORM', 'mentra'));
 
     section('Local state');
+    out.push('# DATABASE_URL uses the default postgres/postgres login of the bundled docker-compose Postgres.');
+    out.push('# That is fine on a private Docker network. Change it (and POSTGRES_PASSWORD in docker-compose.yml)');
+    out.push('# before Postgres is reachable from anywhere else.');
     var host = o.mode === 'hub' || o.mode === 'compose' ? { pg: 'postgres', redis: 'redis' } : { pg: 'localhost', redis: 'localhost' };
     out.push(line('DATABASE_URL', 'postgresql://postgres:postgres@' + host.pg + ':5432/mentra'));
     out.push(line('REDIS_URL', 'redis://' + host.redis + ':6379'));
@@ -138,33 +152,42 @@
     return out.join('\n') + '\n';
   }
 
+  var ACCESS = [
+    '# Companion for Mentra is a developer preview and its source repository is private.',
+    '# Ask for access in the Discord (https://ci.computer/gg), and see the docs:',
+    '# https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live'
+  ];
+
   /** Commands to run after saving the env, per deployment mode. */
   function commands(input) {
     var o = normalize(input);
     if (o.mode === 'hub') {
-      return [
-        '# Install the ci-mentra app on your Companion Hub, then paste this env',
-        '# into its settings. The Hub hands inference credentials only to',
-        '# containers it installed as ci-mentra; running by hand next to a Hub?',
-        '# Pick "Docker Compose" and point Ollama at the Hub host instead.',
+      return ACCESS.concat([
+        '',
+        '# The Companion for Mentra listing in the Hub app catalog is developer-only.',
+        '# Once it is installed on your Companion Hub, paste this env into its settings.',
+        '# The Hub hands inference credentials only to containers it installed as ci-mentra;',
+        '# running by hand next to a Hub? Pick "Docker Compose" and point Ollama at the Hub host instead.',
         'curl -s http://<your-bridge>:8080/health'
-      ].join('\n');
+      ]).join('\n');
     }
     if (o.mode === 'compose') {
-      return [
-        'git clone https://github.com/companionintelligence/CI-Mentra && cd CI-Mentra',
+      return ACCESS.concat([
+        '',
+        'git clone <repository URL you were given> CI-Mentra && cd CI-Mentra',
         'cp ~/Downloads/mentra.env .env',
         'docker compose up -d --build',
         'curl -s http://localhost:8080/health'
-      ].join('\n');
+      ]).join('\n');
     }
-    return [
-      'git clone https://github.com/companionintelligence/CI-Mentra && cd CI-Mentra',
+    return ACCESS.concat([
+      '',
+      'git clone <repository URL you were given> CI-Mentra && cd CI-Mentra',
       'cp ~/Downloads/mentra.env .env',
       'docker compose up -d postgres redis',
       'npm ci && npm run build && npm start',
       'tailscale funnel 7010   # MentraOS must reach the AppServer over HTTPS'
-    ].join('\n');
+    ]).join('\n');
   }
 
   var api = { DEFAULTS: DEFAULTS, normalize: normalize, validate: validate, build: build, commands: commands };

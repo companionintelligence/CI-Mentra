@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// inject-seo.mjs — canonical, description, Open Graph/Twitter cards and JSON-LD for every
-// built HTML page in site/dist, plus /sitemap.xml and /robots.txt.
+// inject-seo.mjs — <title>, canonical, description, icons, Open Graph/Twitter cards and JSON-LD
+// for every built HTML page in site/dist, plus /sitemap.xml and /robots.txt.
 //
 // Idempotent: the generated block is wrapped in <!-- seo:begin --> / <!-- seo:end --> and any
-// previous block (and any stray description/canonical) is removed before re-insertion.
-// JSON-LD is a data block, not executable script, so the `script-src 'self'` CSP does not
-// affect it and no CSP change is needed.
+// previous block (and any stray description/canonical/icon link) is removed before re-insertion;
+// the <title> is replaced in place. JSON-LD is a data block, not executable script, so the
+// script-src CSP does not affect it and no CSP change is needed.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -16,7 +16,8 @@ const dist = resolve(process.argv[2] || 'site/dist');
 const root = resolve(dist, '..', '..');
 const OG_IMAGE = `${ORIGIN}/og.png`;
 
-const ORG = { '@type': 'Organization', name: SITE_NAME, url: 'https://ci.computer' };
+const ORG = { '@type': 'Organization', '@id': 'https://ci.computer/#organization', name: SITE_NAME, url: 'https://ci.computer' };
+const WEBSITE = { '@type': 'WebSite', '@id': `${ORIGIN}/#website`, name: 'Companion for Mentra', url: `${ORIGIN}/`, publisher: { '@id': ORG['@id'] } };
 
 // file (relative to dist) -> page metadata. `src` is the repo file used for lastmod.
 // /app/ keeps its trailing slash: the Worker uses html_handling "auto-trailing-slash",
@@ -26,19 +27,21 @@ const PAGES = [
     file: 'index.html',
     path: '/',
     src: 'site/public/index.html',
-    title: 'Companion for Mentra',
+    title: 'Companion for Mentra: setup guide | Companion Intelligence',
+    name: 'Companion for Mentra',
+    // 160 characters or fewer, so search results do not truncate it (checked by the site tests).
     description:
-      'Set up Companion Intelligence on Mentra smart glasses: run the CI-Mentra bridge, connect it to your Companion Hub and CI-Server memory, and try the companion UI.',
-    app: true,
+      'Companion for Mentra is a developer preview: a voice companion with memory for Mentra Live glasses. See how it works, build its settings file and try the demo.',
   },
   {
     file: 'app/index.html',
     path: '/app/',
     src: 'public/index.html',
-    title: 'Companion demo for Mentra',
+    title: 'Companion demo for Mentra | Companion Intelligence',
+    name: 'Companion demo for Mentra',
     description:
       'Try the Companion UI for Mentra in your browser. A voice-first assistant with memory, running against a canned demo with no account and nothing stored.',
-    app: true,
+    manifest: true,
   },
   {
     file: '404.html',
@@ -49,6 +52,7 @@ const PAGES = [
 ];
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const escText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const jsonLd = (obj) => JSON.stringify(obj).replace(/</g, '\\u003c');
 
 function lastmod(src) {
@@ -80,21 +84,33 @@ function block(p) {
     `<meta name="twitter:title" content="${esc(p.title)}">`,
     `<meta name="twitter:description" content="${esc(p.description)}">`,
     `<meta name="twitter:image" content="${OG_IMAGE}">`,
+    // Fetchable icon files (crawlers, link unfurlers and iOS cannot use an inline data: icon).
+    `<link rel="icon" href="/favicon.ico" sizes="32x32">`,
+    `<link rel="icon" href="/icon.svg" type="image/svg+xml">`,
+    `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`,
+    ...(p.manifest ? [`<link rel="manifest" href="/site.webmanifest">`] : []),
   ];
   if (url) {
-    lines.push(`<script type="application/ld+json">${jsonLd({ '@context': 'https://schema.org', ...ORG })}</script>`);
-    if (p.app) {
-      lines.push(
-        `<script type="application/ld+json">${jsonLd({
-          '@context': 'https://schema.org',
-          '@type': 'SoftwareApplication',
-          name: 'Companion for Mentra',
-          description: p.description,
-          url,
-          publisher: ORG,
-        })}</script>`
-      );
-    }
+    // WebSite/WebPage, not SoftwareApplication: the docs say it is a developer preview that cannot
+    // be installed yet, so the page must not claim an installable app (and carries no offers).
+    lines.push(
+      `<script type="application/ld+json">${jsonLd({
+        '@context': 'https://schema.org',
+        '@graph': [
+          ORG,
+          WEBSITE,
+          {
+            '@type': 'WebPage',
+            '@id': `${url}#webpage`,
+            name: p.name,
+            description: p.description,
+            url,
+            isPartOf: { '@id': WEBSITE['@id'] },
+            publisher: { '@id': ORG['@id'] },
+          },
+        ],
+      })}</script>`
+    );
   }
   lines.push('<!-- seo:end -->');
   return lines.join('\n') + '\n';
@@ -111,11 +127,17 @@ for (const p of PAGES) {
   html = html
     .replace(/<!-- seo:begin -->[\s\S]*?<!-- seo:end -->\n?/g, '')
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, '')
-    .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, '');
-  if (!html.includes('</head>')) {
-    console.error(`inject-seo: no </head> in ${p.file}`);
+    .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, '')
+    // The sources carry an inline data: icon (its SVG contains '>', so match the quoted href whole);
+    // the block below replaces it with real files.
+    .replace(/<link\s+rel="icon"\s+href="data:[^"]*"\s*\/?>\s*/gi, '')
+    .replace(/<link\s+rel="(?:icon|apple-touch-icon|manifest)"[^>]*>\s*/gi, '');
+  if (!html.includes('</head>') || !/<title>[\s\S]*?<\/title>/i.test(html)) {
+    console.error(`inject-seo: no </head> or <title> in ${p.file}`);
     process.exit(1);
   }
+  // The tab, search result and share card must say the same thing.
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escText(p.title)}</title>`);
   writeFileSync(f, html.replace('</head>', `${block(p)}</head>`));
   if (p.path !== null) entries.push({ loc: ORIGIN + p.path, lastmod: lastmod(p.src) });
 }
@@ -128,5 +150,10 @@ writeFileSync(
       .join('\n') +
     `\n</urlset>\n`
 );
-writeFileSync(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${ORIGIN}/sitemap.xml\n`);
+// /api/ is deliberately not disallowed: /app/ fetches it to render, and a crawler that cannot fetch
+// it sees an error screen. Those responses (and /brand/) send `X-Robots-Tag: noindex` instead.
+writeFileSync(
+  join(dist, 'robots.txt'),
+  `User-agent: *\nAllow: /\nDisallow: /healthz\n\nSitemap: ${ORIGIN}/sitemap.xml\n`
+);
 console.log(`inject-seo: ${PAGES.length} pages, ${entries.length} in sitemap`);

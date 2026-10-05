@@ -3,67 +3,98 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1312" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f1f7f6" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
-<meta name="description" content="Set up Companion Intelligence on Mentra smart glasses: run the CI-Mentra bridge, connect it to your Companion Hub and CI-Server memory, and try the companion UI.">
+<meta name="description" content="Companion for Mentra is a developer preview: a voice companion with memory for Mentra Live glasses. See how it works, build its settings file and try the demo.">
 <title>Companion for Mentra</title>
+<link rel="stylesheet" href="brand/tokens/tokens.css">
 <link rel="stylesheet" href="site.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='none' stroke='%235fbdc3' stroke-width='3'/><circle cx='16' cy='16' r='4.5' fill='%235fbdc3'/></svg>">
 </head>
 <body>
-<a class="skip" href="#setup">Skip to setup</a>
+<a class="skip" href="#main">Skip to main content</a>
 
 <header class="top">
   <div class="wrap top__row">
-    <a class="brand" href="/" aria-label="Companion for Mentra home">
-      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="16" cy="16" r="4.5" fill="currentColor"/></svg>
-      <span>Companion <em>for Mentra</em></span>
-    </a>
+    <div class="brandrow">
+      <a class="brand" href="https://ci.computer" aria-label="Companion Intelligence home (ci.computer)">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="16" cy="16" r="4.5" fill="currentColor"/></svg>
+        <span>Companion<span class="brand__more"> Intelligence</span></span>
+      </a>
+      <a class="brand-sub" href="/" aria-current="page">for Mentra</a>
+    </div>
     <nav class="top__nav" aria-label="Sections">
       <a href="#how">How it works</a>
       <a href="#setup">Setup</a>
       <a href="#check">Check bridge</a>
+      <a href="https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live">Docs</a>
       <a class="btn btn--ghost" href="/app/">Try the demo</a>
     </nav>
   </div>
 </header>
 
-<main>
+<main id="main" tabindex="-1">
   <section class="hero wrap">
-    <p class="eyebrow">Companion Intelligence · Device layer</p>
+    <p class="eyebrow">Companion Intelligence · Mentra Live</p>
     <h1>Your companion, in your glasses.</h1>
-    <p class="lede">CI-Mentra connects Mentra glasses to <strong>your own</strong> Companion Hub and memory. You speak, it recalls what you told it before, and it answers out loud. Your conversations stay on hardware you control.</p>
+    <p class="lede">Companion for Mentra connects Mentra Live glasses to <strong>your own</strong> Companion Hub and Companion Memory. You speak, it recalls what you told it before, and it answers out loud.</p>
     <div class="hero__cta">
-      <a class="btn btn--primary" href="#setup">Set up your bridge</a>
+      <a class="btn btn--primary" href="#setup">Developer setup guide</a>
       <a class="btn" href="/app/">Open the companion UI demo</a>
     </div>
   </section>
+
+  <div class="wrap">
+    <section class="getband" aria-labelledby="get-title">
+      <div class="getband__copy">
+        <h2 id="get-title">Start with Companion</h2>
+        <p>Companion for Mentra connects to a Companion Hub and Companion Memory. These buttons are for the Companion platform itself.</p>
+      </div>
+      <div class="getband__cta">
+        <a class="btn btn--primary" href="https://ci.computer/core">Buy Companion Core</a>
+        <a class="btn" href="https://ci.computer/download">Download Companion</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="status" aria-labelledby="status-title">
+      <h2 class="status__title" id="status-title">Developer preview</h2>
+      <p>You can’t install Companion for Mentra yet. It has no public download or store listing, and its source repository is private, so it runs only if Companion Intelligence gives you access. To ask about access or follow progress, join the <a href="https://ci.computer/gg">Discord</a> or read the <a href="https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live">Mentra Live docs</a>.</p>
+      <p>Mentra is retiring the app type this bridge uses (Cloud SDK apps). They keep running only on Mentra’s separate <a href="https://mentraglass.com/legacy" target="_blank" rel="noopener">MentraOS Legacy</a> build, and Mentra says support for that build ends in October 2026.</p>
+    </section>
+  </div>
 
   <section id="how" class="wrap block">
     <h2>How it works</h2>
     <ol class="flow" aria-label="Request path">
       <li><span class="flow__k">Glasses</span><span class="flow__v">Mentra Live picks up your voice</span></li>
-      <li><span class="flow__k">MentraOS</span><span class="flow__v">Streams the transcript to your app's public URL</span></li>
-      <li><span class="flow__k">CI-Mentra bridge</span><span class="flow__v">Runs on your Hub or server. Ports 7010 (AppServer) and 8080 (UI + API)</span></li>
+      <li><span class="flow__k">MentraOS</span><span class="flow__v">Sends the audio to your bridge’s public HTTPS address</span></li>
+      <li><span class="flow__k">Companion for Mentra bridge</span><span class="flow__v">Runs on your Companion Hub or a server you control. Ports 7010 (AppServer) and 8080 (UI + API)</span></li>
+      <li><span class="flow__k">Speech-to-text</span><span class="flow__v">The bridge sends each utterance to an OpenAI-compatible endpoint you provide, such as a local Whisper server</span></li>
       <li class="flow__split">
-        <div><span class="flow__k">CI-Hub</span><span class="flow__v">Local inference: Ollama or the hermes / openclaw agent</span></div>
-        <div><span class="flow__k">CI-Server</span><span class="flow__v">Companion Memory: profile, recall, turns</span></div>
+        <div><span class="flow__k">Companion Hub</span><span class="flow__v">Your local model answers: Ollama or the hermes / openclaw agent</span></div>
+        <div><span class="flow__k">Companion Memory</span><span class="flow__v">Recalls what you told it before and saves each exchange: profile, recall, turns</span></div>
       </li>
+      <li><span class="flow__k">MentraOS voice</span><span class="flow__v">The bridge speaks the reply back through your glasses with the MentraOS text-to-speech voice</span></li>
     </ol>
-    <p class="note">The phone and R1 ring UI is served by the bridge itself at <code>https://&lt;your-bridge&gt;/</code>. This site hosts a demo of that UI with canned answers, so you can see it before you install.</p>
+    <p class="note"><strong>Audio passes through MentraOS.</strong> Answers are generated on your Hub, and your conversations and saved memories are stored only in your own Companion Memory, but the audio and transcripts do travel through Mentra’s service on the way.</p>
+    <p class="note">The phone and R1 ring UI is served by the bridge itself at <code>https://&lt;your-bridge&gt;/</code>. This site hosts a demo of that UI with canned answers, so you can see what it looks like.</p>
   </section>
 
   <section id="setup" class="wrap block">
     <h2>Setup</h2>
-    <p class="note">Fill this in to generate your <code>.env</code>. <strong>Nothing you type leaves this page.</strong> The file is built in your browser, then copied or downloaded.</p>
+    <p class="note">These steps are for developers who have been given access to the bridge. Fill the form in to generate your <code>.env</code>. <strong>Nothing you type leaves this page.</strong> The file is built in your browser, then copied or downloaded.</p>
 
     <ol class="steps">
       <li>
-        <h3>Register the app in MentraOS</h3>
+        <h3>Register the app in MentraOS <span class="tag">needs access</span></h3>
         <p>In the <a href="https://console.mentra.glass" rel="noopener" target="_blank">MentraOS developer console</a>, create an app. Set its <b>Public URL</b> to the HTTPS address that reaches your bridge on port 7010, for example a Tailscale Funnel or Cloudflare Tunnel hostname. Copy the <b>package name</b> and <b>API key</b>.</p>
+        <p class="note">A Cloud SDK app needs Mentra’s <a href="https://mentraglass.com/legacy" rel="noopener" target="_blank">MentraOS Legacy</a> build. As of 3 October 2026 the console shows only a “coming soon” page, so new apps can’t be registered there yet.</p>
       </li>
       <li>
-        <h3>Get a CI-Server memory key</h3>
-        <p>Companion Memory uses a <b>memory-scoped CI-Server API key</b> sent as <code>x-api-key</code>. It is not your Portal login. Issue one in CI-Server the same way you do for the Hermes and OpenClaw plugins.</p>
+        <h3>Get a Companion Memory key</h3>
+        <p>Companion Memory uses a <b>memory-scoped API key</b> sent as <code>x-api-key</code>. It is not your Companion Intelligence sign-in. Issue one in Companion Memory the same way you do for the Hermes and OpenClaw plugins.</p>
       </li>
       <li>
         <h3>Generate your environment</h3>
@@ -89,12 +120,12 @@
               <span class="inline"><input name="facadeApiKey" spellcheck="false"><button type="button" class="btn btn--small" data-gen="facadeApiKey">Generate</button></span></label>
             <label class="field"><span>Session secret</span>
               <span class="inline"><input name="sessionSecret" spellcheck="false"><button type="button" class="btn btn--small" data-gen="sessionSecret">Generate</button></span></label>
-            <label class="check"><input type="checkbox" name="oidcEnabled"> <span>Sign in with Companion Intelligence (CI-Portal OIDC)</span></label>
+            <label class="check"><input type="checkbox" name="oidcEnabled"> <span>Sign in with Companion Intelligence <small>OIDC</small></span></label>
           </fieldset>
 
           <fieldset data-when="hub">
-            <legend>Inference from CI-Hub</legend>
-            <label class="field"><span>Hub URL</span><input name="hubUrl" placeholder="http://ci-hub:5002" spellcheck="false"></label>
+            <legend>Inference from Companion Hub</legend>
+            <label class="field"><span>Companion Hub URL</span><input name="hubUrl" placeholder="http://ci-hub:5002" spellcheck="false"></label>
             <label class="field"><span>Hub app slug</span>
               <select name="hubSlug">
                 <option value="ci-mentra">ci-mentra</option>
@@ -106,7 +137,12 @@
           <fieldset data-when="compose tailscale">
             <legend>Inference from Ollama</legend>
             <label class="field"><span>Ollama URL</span><input name="ollamaUrl" placeholder="http://localhost:11434" spellcheck="false"></label>
-            <label class="field"><span>Local speech URL <small>optional, OpenAI-compatible STT/TTS</small></span><input name="speechUrl" placeholder="http://speech.your-tailnet.ts.net:8000" spellcheck="false"></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Speech-to-text</legend>
+            <label class="field"><span>Speech-to-text URL <small>required · OpenAI-compatible, base address without <code>/v1</code></small></span><input name="speechUrl" placeholder="http://speech.your-tailnet.ts.net:8000" spellcheck="false" required></label>
+            <p class="note">The bridge doesn’t include a speech-to-text server, and neither Ollama nor the Hub’s model endpoint serves transcription. It calls <code>/v1/audio/transcriptions</code> on this address, for example on a local Whisper server.</p>
           </fieldset>
 
           <fieldset>
@@ -116,12 +152,12 @@
 
           <fieldset>
             <legend>Companion Memory</legend>
-            <label class="check"><input type="checkbox" name="memoryEnabled" checked> <span>Use CI-Server memory</span></label>
-            <label class="field"><span>CI-Server URL</span><input name="ciServerUrl" placeholder="http://ci-server:8642" spellcheck="false"></label>
+            <label class="check"><input type="checkbox" name="memoryEnabled" checked> <span>Use Companion Memory</span></label>
+            <label class="field"><span>Companion Memory URL</span><input name="ciServerUrl" placeholder="http://ci-server:8642" spellcheck="false"></label>
             <label class="field"><span>Path prefix</span>
               <select name="memoryPrefix">
-                <option value="/api">/api (via gateway or Hub, the usual case)</option>
-                <option value="(none)">none (straight to the CI-Server API container)</option>
+                <option value="/api">/api (when going through the Hub, the usual case)</option>
+                <option value="(none)">none (straight to the Companion Memory API container)</option>
               </select></label>
             <label class="field"><span>Memory API key</span><input name="memoryKey" type="password" spellcheck="false"></label>
           </fieldset>
@@ -137,7 +173,7 @@
         </div>
       </li>
       <li>
-        <h3>Run it</h3>
+        <h3>Run it <span class="tag">needs access</span></h3>
         <div class="out">
           <div class="out__head"><span>shell</span><span class="out__actions"><button type="button" class="btn btn--small" id="copy-cmd">Copy</button></span></div>
           <pre id="cmd-out" tabindex="0" aria-label="Commands"></pre>
@@ -148,7 +184,7 @@
 
   <section id="check" class="wrap block">
     <h2>Check your bridge</h2>
-    <p class="note">This reads your bridge's public <code>/health</code> endpoint directly from your browser. It works for bridges that allow this site in <code>MENTRA_SETUP_ORIGINS</code>, which they do by default.</p>
+    <p class="note">This reads your bridge’s public <code>/health</code> endpoint directly from your browser. It works for bridges that allow this site in <code>MENTRA_SETUP_ORIGINS</code>, which they do by default.</p>
     <form id="checkform" class="checkform">
       <label class="field grow"><span>Bridge URL (port 8080)</span><input name="url" type="url" placeholder="http://localhost:8080" spellcheck="false" required></label>
       <button class="btn btn--primary" type="submit">Check</button>
@@ -157,8 +193,40 @@
   </section>
 </main>
 
-<footer class="foot wrap">
-  <p>CI-Mentra is part of the Companion Intelligence platform. © Lifescope Inc. <a href="/app/">Demo UI</a> · <a href="/healthz">Status</a></p>
+<footer class="foot">
+  <nav class="wrap foot__grid" aria-label="Footer">
+    <div class="foot__col foot__about">
+      <a class="foot__brand" href="https://ci.computer">Companion Intelligence</a>
+      <p>Companion for Mentra is part of the Companion Intelligence platform.</p>
+    </div>
+    <div class="foot__col">
+      <h2 class="foot__h">Get Companion</h2>
+      <ul>
+        <li><a href="https://ci.computer/core">Buy Companion Core</a></li>
+        <li><a href="https://ci.computer/download">Download Companion</a></li>
+      </ul>
+    </div>
+    <div class="foot__col">
+      <h2 class="foot__h">Learn and get help</h2>
+      <ul>
+        <li><a href="https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live">Docs</a></li>
+        <li><a href="/app/">Demo UI</a></li>
+        <li><a href="https://ci.computer/support">Support</a></li>
+        <li><a href="https://ci.computer/gg">Discord</a></li>
+      </ul>
+    </div>
+    <div class="foot__col">
+      <h2 class="foot__h">Legal</h2>
+      <ul>
+        <li><a href="https://ci.computer/privacy-policy">Privacy policy</a></li>
+        <li><a href="https://ci.computer/terms-of-service">Terms of service</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="wrap foot__fine">
+    <p>© Lifescope Inc.</p>
+    <p data-ga-notice hidden>This site uses Google Analytics to measure how it is used. See the <a href="https://ci.computer/privacy-policy">privacy policy</a>.</p>
+  </div>
 </footer>
 
 <script src="env-builder.js" defer></script>

@@ -74,7 +74,7 @@
 
     <!-- ---------- TALK ---------- -->
     <section class="view" id="view-talk" data-view="talk" role="tabpanel"
-             aria-labelledby="talk-title">
+             aria-labelledby="tab-talk">
       <h1 class="view__title" id="talk-title">Talk</h1>
 
       <div class="stage">
@@ -128,7 +128,7 @@
 
     <!-- ---------- MEMORY ---------- -->
     <section class="view" id="view-memory" data-view="memory" role="tabpanel"
-             aria-labelledby="memory-title" hidden>
+             aria-labelledby="tab-memory" hidden>
       <h1 class="view__title" id="memory-title">Memory</h1>
 
       <form class="composer" id="search-form" autocomplete="off">
@@ -168,7 +168,7 @@
 
     <!-- ---------- PROFILE ---------- -->
     <section class="view" id="view-profile" data-view="profile" role="tabpanel"
-             aria-labelledby="profile-title" hidden>
+             aria-labelledby="tab-profile" hidden>
       <h1 class="view__title" id="profile-title">Profile</h1>
 
       <div class="panel">
@@ -199,7 +199,7 @@
        Tab reaches the tablist once, arrows do the rest. `.focus()` still works on
        tabindex="-1", so the ring cursor still reaches every tab via ArrowUp/Down. -->
   <nav class="tabbar" id="tabbar" role="tablist" aria-label="Views">
-    <button type="button" class="tab" data-ring data-tab="talk" role="tab" tabindex="0"
+    <button type="button" class="tab" id="tab-talk" data-ring data-tab="talk" role="tab" tabindex="0"
             aria-selected="true" aria-controls="view-talk">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
         <rect x="9.5" y="3" width="5" height="10" rx="2.5" fill="currentColor"/>
@@ -208,7 +208,7 @@
       </svg>
       <span>Talk</span>
     </button>
-    <button type="button" class="tab" data-ring data-tab="memory" role="tab" tabindex="-1"
+    <button type="button" class="tab" id="tab-memory" data-ring data-tab="memory" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="view-memory">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
         <path d="M12 3.2a5 5 0 0 1 5 5v2.3a5 5 0 0 1-1.6 3.7l-.6.5a3 3 0 0 0-1 2.2v1.4a2.8 2.8 0 1 1-5.6 0v-1.4a3 3 0 0 0-1-2.2l-.6-.5A5 5 0 0 1 7 10.5V8.2a5 5 0 0 1 5-5z"
@@ -217,7 +217,7 @@
       </svg>
       <span>Memory</span>
     </button>
-    <button type="button" class="tab" data-ring data-tab="profile" role="tab" tabindex="-1"
+    <button type="button" class="tab" id="tab-profile" data-ring data-tab="profile" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="view-profile">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
         <circle cx="12" cy="8.2" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/>

@@ -18,7 +18,7 @@ export const DEMO_PROFILE = [
   'Name: Demo wearer',
   'Wears: Mentra Live glasses',
   'Prefers: short spoken answers, metric units',
-  'This is sample profile context. On your own bridge it comes from Companion Memory (CI-Server).',
+  'This is sample profile context. On your own bridge it comes from Companion Memory.',
 ].join('\n');
 
 const DEMO_MEMORIES = [
@@ -94,13 +94,13 @@ export function demoAnswer(text: string): { answer: string; remembered: boolean;
   }
   if (/\b(what can you do|help|how does this work)\b/i.test(t)) {
     return {
-      answer: 'On your glasses I answer out loud, recall what you told me before, and save things when you say "remember…". Set up your own bridge at mentra.ci.computer.',
+      answer: 'On your glasses I answer out loud, recall what you told me before, and save things when you say "remember…". See how the bridge works at mentra.ci.computer.',
       remembered: false,
       usedRecallCount: 0,
     };
   }
   return {
-    answer: 'This is a demo, so I only know a few canned answers. Connect your own CI-Mentra bridge to talk to your real companion.',
+    answer: 'This is a demo, so I only know a few canned answers. A real Companion for Mentra bridge answers from your own model and memory.',
     remembered: false,
     usedRecallCount: 0,
   };
