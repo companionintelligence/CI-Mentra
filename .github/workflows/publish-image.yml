@@ -4,9 +4,13 @@ name: Publish image
 # ghcr.io/companionintelligence/ci-mentra — the image the CI-Marketplace
 # `ci-mentra` listing installs. Release tags (v*) publish that version;
 # a manual dispatch publishes the current commit as sha-<short>.
+# >>> ci-local:gated original triggers below, restore with `ci-local restore`
+# on:
+#   push:
+#     tags: ['v*']
+#   workflow_dispatch:
+# <<< ci-local:gated
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:

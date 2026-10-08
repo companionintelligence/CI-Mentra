@@ -4,17 +4,21 @@ name: Deploy mentra.ci.computer
 # assets (site/wrangler.jsonc). Deploys when the site, the companion UI it
 # embeds, or the build scripts (including the SEO/GA/cross-link injectors) change
 # on main; can also be dispatched by hand.
+# >>> ci-local:gated original triggers below, restore with `ci-local restore`
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - 'site/**'
+#       - 'public/**'
+#       - 'scripts/build-site.sh'
+#       - 'scripts/inject-*.mjs'
+#       - 'scripts/version-assets.mjs'
+#       - 'scripts/vendor-brand.sh'
+#       - '.github/workflows/deploy-site.yml'
+#   workflow_dispatch:
+# <<< ci-local:gated
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'site/**'
-      - 'public/**'
-      - 'scripts/build-site.sh'
-      - 'scripts/inject-*.mjs'
-      - 'scripts/version-assets.mjs'
-      - 'scripts/vendor-brand.sh'
-      - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
 
 concurrency:
