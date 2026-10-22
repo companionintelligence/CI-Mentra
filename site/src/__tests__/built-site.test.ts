@@ -119,8 +119,8 @@ describe('built site', () => {
       expect(html).toContain('<link rel="icon" href="/icon.svg" type="image/svg+xml">');
       expect(html).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png">');
       expect(html).not.toContain('rel="icon" href="data:');
-      expect(html).toMatch(/<meta name="theme-color" content="#0a1312" media="\(prefers-color-scheme: dark\)">/);
-      expect(html).toMatch(/<meta name="theme-color" content="#f1f7f6" media="\(prefers-color-scheme: light\)">/);
+      expect(html).toContain('<meta name="theme-color" content="#041620">');
+      expect(html).toContain('<html lang="en" class="dark">');
       for (const f of ['favicon.ico', 'icon.svg', 'apple-touch-icon.png']) expect(existsSync(join(DIST, f))).toBe(true);
     });
 
