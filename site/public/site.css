@@ -120,7 +120,7 @@ main:focus { outline: none; }
 .get404 { margin-top: 32px; }
 
 /* Developer-preview notice, kept honest and near the top. */
-.status { margin: 0 0 32px; max-width: 46rem; padding: 16px 18px; border: 1px solid var(--site-hairline); border-radius: var(--site-radius-card); background: var(--site-panel); }
+.status { margin: 0 0 32px; padding: 16px 18px; border: 1px solid var(--site-hairline); border-radius: var(--site-radius-card); background: var(--site-panel); }
 .status__title { margin: 0 0 0.4em; font-size: var(--site-type-label); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--site-label-ink); }
 .status p { margin: 0.5em 0 0; color: var(--site-muted); font-size: 0.95rem; }
 
