@@ -1,5 +1,8 @@
-# CI-Mentra
-Mentra Glass Live App
+<h1 align="center">CI-Mentra</h1>
+
+<p align="center"><strong>Mentra Glass Live App</strong></p>
+
+<p align="center"><a href="https://mentra.ci.computer">Website</a> · <a href="#tailscale-ollama-stt-tts-quick-setup">Get started</a></p>
 
 ## Runtime
 
