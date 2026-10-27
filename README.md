@@ -2,7 +2,7 @@
 
 <p align="center"><strong>Mentra Glass Live App</strong></p>
 
-<p align="center"><a href="https://mentra.ci.computer">Website</a> · <a href="#tailscale-ollama-stt-tts-quick-setup">Get started</a></p>
+<p align="center"><a href="https://mentra.ci.computer">Website</a> · <a href="#tailscale-ollama-stt-tts-quick-setup">Get started</a> · <a href="https://docs.ci.computer/docs/reference/open-source-systems">Systems map</a></p>
 
 ## Runtime
 
