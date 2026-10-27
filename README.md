@@ -1,5 +1,27 @@
-# CI-Mentra
-Mentra Glass Live App
+<h1 align="center">CI-Mentra</h1>
+
+<p align="center"><strong>Mentra Glass Live App</strong></p>
+
+[![tag](https://img.shields.io/github/v/tag/companionintelligence/CI-Mentra?style=flat-square&color=0a6358&label=tag)](https://github.com/companionintelligence/CI-Mentra/tags)
+[![platform](https://img.shields.io/badge/platform-MentraOS%20%C2%B7%20Node.js%20%C2%B7%20Deno-0a6358?style=flat-square)](https://github.com/companionintelligence/CI-Mentra)
+[![License](https://img.shields.io/badge/license-PolyForm%20NC%201.0-0a6358?style=flat-square)](LICENSE.md)
+[![Discord](https://img.shields.io/badge/chat-Discord-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com/invite/yQp9hwpzAa)
+
+<p align="center"><a href="https://mentra.ci.computer">Website</a> · <a href="#tailscale-ollama-stt-tts-quick-setup">Get started</a> · <a href="https://docs.ci.computer/docs/reference/open-source-systems">Systems map</a> · <a href="https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live">Documentation</a></p>
+
+<p align="center">
+  <a href="https://mentra.ci.computer"><img src="https://img.shields.io/badge/Open%20hosted%20setup-Open%20hosted%20setup-0a6358?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Open hosted setup" height="30"></a>
+</p>
+
+
+## Features
+
+| Feature | What it provides |
+|---|---|
+| **Identity** | Sign in with CI Portal OIDC in the hosted runtime. |
+| **Inference and agents** | Use configured Hub inference and Hermes/OpenClaw endpoints. |
+| **Memory** | Send and retrieve data through the user-configured Companion Memory API. |
+| **Deployment modes** | Support hosted service and Bluetooth-local setup paths. |
 
 ## Runtime
 
@@ -430,3 +452,41 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -d '{"model":"tts-1","input":"Mentra setup complete","voice":"alloy"}' \
   --output /tmp/mentra-tts.mp3
 ```
+
+<!-- companion-hub-readme-deep-review -->
+
+
+## How it fits together
+
+The glasses app runs in MentraOS; its CI service keeps identity, inference and memory as separate integrations so hosted and Bluetooth-local modes can choose different routes.
+
+```mermaid
+flowchart LR
+  Glasses[MentraOS glasses] --> App[CI-Mentra service]
+  App --> OIDC[CI Portal OIDC]
+  App --> Hub[Configured Hub inference or agent]
+  App --> Memory[Configured Memory API]
+  Local[Bluetooth-local mode] --> App
+```
+
+## Integration map
+
+| Integration | Role in this setup |
+|---|---|
+| CI-Portal OIDC | User sign-in for the Companion Intelligence flow |
+| CI-Hub Ollama | Standardized local model endpoint |
+| Hermes or OpenClaw | Agent backend running on Hub |
+| CI-Server / Companion Memory | Persistent memory API |
+| MentraOS | Glasses app manifest and runtime |
+
+```mermaid
+flowchart LR
+  Glasses[MentraOS glasses] --> App[Mentra app runtime]
+  App --> Portal[CI-Portal OIDC]
+  App --> Hub[CI-Hub model and agent services]
+  App --> Memory[CI-Server memory API]
+  App --> UI[Companion UI and BFF]
+```
+
+The repository supports different runtime modes; follow the matching mode's prerequisites and environment generation steps rather than mixing the hosted demo and Bluetooth-local setup.
+
