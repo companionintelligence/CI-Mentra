@@ -433,3 +433,27 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -d '{"model":"tts-1","input":"Mentra setup complete","voice":"alloy"}' \
   --output /tmp/mentra-tts.mp3
 ```
+
+<!-- companion-hub-readme-deep-review -->
+
+## Integration map
+
+| Integration | Role in this setup |
+|---|---|
+| CI-Portal OIDC | User sign-in for the Companion Intelligence flow |
+| CI-Hub Ollama | Standardized local model endpoint |
+| Hermes or OpenClaw | Agent backend running on Hub |
+| CI-Server / Companion Memory | Persistent memory API |
+| MentraOS | Glasses app manifest and runtime |
+
+```mermaid
+flowchart LR
+  Glasses[MentraOS glasses] --> App[Mentra app runtime]
+  App --> Portal[CI-Portal OIDC]
+  App --> Hub[CI-Hub model and agent services]
+  App --> Memory[CI-Server memory API]
+  App --> UI[Companion UI and BFF]
+```
+
+The repository supports different runtime modes; follow the matching mode's prerequisites and environment generation steps rather than mixing the hosted demo and Bluetooth-local setup.
+
