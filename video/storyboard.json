@@ -1,0 +1,82 @@
+{
+  "$schema": "https://raw.githubusercontent.com/companionintelligence/CI-Common/main/packages/video-kit/schema/storyboard.schema.json",
+  "app": {
+    "id": "ci-mentra",
+    "name": "Companion for Mentra glasses",
+    "repo": "companionintelligence/CI-Mentra",
+    "website": "ci.computer"
+  },
+  "meta": {
+    "fps": 30,
+    "transitionSeconds": 0.5,
+    "pacing": "fit",
+    "label": "HOLD. Storyboard draft. No device footage.",
+    "posterFirst": true,
+    "subtitles": "sidecar"
+  },
+  "chapters": {
+    "loop": "The loop"
+  },
+  "scenes": [
+    {
+      "id": "open",
+      "kind": "intro",
+      "seconds": 5,
+      "minSeconds": 5,
+      "title": "Companion for Mentra glasses",
+      "caption": "Glasses voice in, your own AI out.",
+      "narration": "Mentra glasses voice input, answered by the AI you run, and spoken back.",
+      "mark": "./assets/app-icon.png"
+    },
+    {
+      "id": "loop",
+      "kind": "feature",
+      "seconds": 5,
+      "minSeconds": 5,
+      "title": "Speak. Your stack answers. It speaks back.",
+      "caption": "Voice becomes a model response, then audio.",
+      "narration": "Your voice becomes a response from the model you configure, and the answer is spoken back.",
+      "chapter": "loop"
+    },
+    {
+      "id": "wire",
+      "kind": "feature",
+      "seconds": 9,
+      "minSeconds": 9,
+      "title": "Wired to the stack you own.",
+      "caption": "Sign in, route to your models, add Memory.",
+      "narration": "You sign in with your Companion Intelligence account. Inference routes to your Companion Hub, or to Hermes and OpenClaw endpoints. Memory is optional.",
+      "chapter": "loop",
+      "items": [
+        {
+          "label": "Identity",
+          "value": "Companion Intelligence sign-in"
+        },
+        {
+          "label": "Inference",
+          "value": "Companion Hub, Hermes, OpenClaw"
+        },
+        {
+          "label": "Memory",
+          "value": "Optional, your Companion Memory"
+        },
+        {
+          "label": "Deploy",
+          "value": "Hosted or Bluetooth-local"
+        }
+      ],
+      "reveal": "paced"
+    },
+    {
+      "id": "close",
+      "kind": "outro",
+      "seconds": 6,
+      "minSeconds": 6,
+      "caption": "mentra.ci.computer",
+      "cta": "Ask from your glasses",
+      "tagline": "UnCloud your life.",
+      "url": "mentra.ci.computer",
+      "narration": "Ask from your glasses with Companion for Mentra glasses. Visit mentra dot ci dot computer. UnCloud your life."
+    }
+  ]
+}
