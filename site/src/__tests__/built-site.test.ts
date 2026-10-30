@@ -49,6 +49,29 @@ const hrefs = (html: string): string[] => [...html.matchAll(/<a\b[^>]*\bhref="([
 const meta = (html: string, attr: string, key: string): string | undefined =>
   new RegExp(`<meta\\s+${attr}="${key}"\\s+content="([^"]*)"`).exec(html)?.[1];
 
+/** The markers `ci-local gate` writes around a workflow's original `on:` block (CI-Local-CICD, local_ci/workflows.py). */
+const GATE_BEGIN = '# >>> ci-local:gated';
+const GATE_END = '# <<< ci-local:gated';
+/** The globs of a `paths:` list in a trigger block, in this repo's layout: two-space YAML, single-quoted entries. */
+const listedPaths = (yaml: string): string[] =>
+  [...(/\n {4}paths:\n((?: {6}- '[^']+'\n)+)/.exec(yaml)?.[1] ?? '').matchAll(/- '([^']+)'/g)].map((m) => m[1]);
+
+/**
+ * The paths a workflow deploys on, as its author designed them. `ci-local` gates a workflow down to
+ * `workflow_dispatch`: the live `on:` block shrinks to that and the original triggers stay in a comment block above
+ * it, each line prefixed `# `, until `ci-local restore` puts them back. So read the live block when it lists paths
+ * and the gated comment block when it does not, and the same check holds before, during and after the gate.
+ */
+function deployPaths(workflow: string): string[] {
+  const live = listedPaths(workflow);
+  if (live.length > 0) return live;
+  const lines = workflow.split('\n');
+  const begin = lines.findIndex((l) => l.trim().startsWith(GATE_BEGIN));
+  const end = lines.findIndex((l, i) => i > begin && l.trim().startsWith(GATE_END));
+  if (begin < 0 || end < 0) return [];
+  return listedPaths(lines.slice(begin + 1, end).map((l) => l.replace(/^\s*# ?/, '')).join('\n') + '\n');
+}
+
 describe('built site', () => {
   let first: Record<string, string>;
   const pages = { '/': 'index.html', '/app/': 'app/index.html', '404': '404.html' };
@@ -274,7 +297,7 @@ describe('built site', () => {
 
   it('README lists the same deploy triggers as the workflow', () => {
     const workflow = readFileSync(join(ROOT, '.github', 'workflows', 'deploy-site.yml'), 'utf8');
-    const paths = [...(/\n {4}paths:\n((?: {6}- '[^']+'\n)+)/.exec(workflow)?.[1] ?? '').matchAll(/- '([^']+)'/g)].map((m) => m[1]);
+    const paths = deployPaths(workflow);
     expect(paths.length).toBeGreaterThan(3);
     const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
     const sentence = /deploy-site\.yml`[^]*?on manual dispatch/.exec(readme)?.[0] ?? '';
@@ -308,4 +331,61 @@ describe('built site', () => {
     build();
     expect(snapshot()).toEqual(first);
   }, 60_000);
+});
+
+/** The reader behind the README check, on workflow text alone (no build): a restored workflow and a ci-local gated one. */
+describe('deployPaths', () => {
+  const globs = ['site/**', 'public/**', 'scripts/build-site.sh', '.github/workflows/deploy-site.yml'];
+  const RESTORED = `name: Deploy
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'public/**'
+      - 'scripts/build-site.sh'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+`;
+  const GATED = `name: Deploy
+# >>> ci-local:gated original triggers below, restore with \`ci-local restore\`
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - 'site/**'
+#       - 'public/**'
+#       - 'scripts/build-site.sh'
+#       - '.github/workflows/deploy-site.yml'
+#   workflow_dispatch:
+# <<< ci-local:gated
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+`;
+
+  it('reads the live on: block of a restored workflow', () => {
+    expect(deployPaths(RESTORED)).toEqual(globs);
+  });
+
+  it('reads the ci-local comment block of a gated workflow, whose live on: only allows a manual dispatch', () => {
+    expect(deployPaths(GATED)).toEqual(globs);
+  });
+
+  it('prefers a paths list in the live block over the gated comment block', () => {
+    const live = GATED.replace('on:\n  workflow_dispatch:\n', "on:\n  push:\n    paths:\n      - 'live/**'\n  workflow_dispatch:\n");
+    expect(deployPaths(live)).toEqual(['live/**']);
+  });
+
+  it('finds no paths without a live list or a complete gate, so the README check keeps failing on an empty result', () => {
+    expect(deployPaths('on:\n  workflow_dispatch:\n')).toEqual([]);
+    expect(deployPaths(GATED.replace('# <<< ci-local:gated\n', ''))).toEqual([]);
+  });
 });
