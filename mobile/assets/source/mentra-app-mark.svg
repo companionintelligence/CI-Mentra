@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Mentra app mark for the phone app icons and the native splash: a pair of smart glasses with
+  a companion dot in the right lens. Drawn for Companion for Mentra. It is not Mentra's logo.
+  Canvas 1024 x 1024 user units, transparent. The mark is centred at 60 percent of the width
+  (about 612 units across), inside the central 66 percent Android safe zone.
+  Drawn in the dark palette's primary (#c5e8dc). mobile/README.md lists the commands that
+  recolour the same paths for the light splash and the monochrome icon.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <g transform="translate(512 512) scale(0.84) translate(-512 -504)" fill="none" stroke="#c5e8dc" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="230" y="420" width="214" height="168" rx="72"/>
+    <rect x="580" y="420" width="214" height="168" rx="72"/>
+    <path d="M444 470 Q512 436 580 470"/>
+    <path d="M230 462 L170 438"/>
+    <path d="M794 462 L854 438"/>
+    <circle cx="687" cy="504" r="34" fill="#c5e8dc" stroke="none"/>
+  </g>
+</svg>

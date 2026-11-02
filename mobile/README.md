@@ -418,6 +418,9 @@ this folder is under the repository license, [`LICENSE.md`](../LICENSE.md).
 | `src/screens/ConsoleScreen.tsx` | `src/screens/ConsoleScreen.tsx` |
 | `src/components/TabBar.tsx` | `src/components/TabBar.tsx` |
 
-The app icons and the native splash use the official Companion Intelligence mark, copied from the
-CI-Common brand assets (`assets/logos/mark-tight.svg`). The editable copy is `assets/source/companion-mark.svg`.
-The starter kit's artwork is not used.
+The app icons and the native splash use a Mentra-specific mark: a pair of smart glasses with a companion dot
+in one lens. It is drawn for this app and is not Mentra's logo. The editable source is
+`assets/source/mentra-app-mark.svg`, drawn in `#c5e8dc`. The variants recolour the same paths: the monochrome
+icon uses `#ffffff` and the light splash uses `#0a6358`. `icon.png` is the mark at full scale on `#041620`,
+flattened to an opaque PNG, because App Store Connect rejects a transparent icon. The starter kit's artwork is
+not used.
