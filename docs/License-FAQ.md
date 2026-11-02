@@ -24,6 +24,10 @@ Yes. Open a pull request on this repository.
 
 No. Selling Companion Mentra, including cloud-hosted instances, appliances that ship it, or paid support for those products, is not permitted. For commercial partnership questions, email partner@companionintelligence.com.
 
+### Are any files in this repository under a different license?
+
+Yes. Fifteen files in `mobile/` are adapted from the Mentra Bluetooth SDK Starter Kit, Copyright 2026 Mentra Labs, Inc., and stay under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). The license text is in [`mobile/LICENSE-Apache-2.0`](../mobile/LICENSE-Apache-2.0), and [`mobile/README.md`](../mobile/README.md#attribution) lists the files. Everything else in this repository is under the PolyForm Noncommercial License 1.0.0.
+
 ### Does this license apply to the rest of Companion Intelligence?
 
 Companion Portal stays a separate commercial product — this license does not apply to it.

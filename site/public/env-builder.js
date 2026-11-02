@@ -153,7 +153,7 @@
   }
 
   var ACCESS = [
-    '# Companion for Mentra is a developer preview and its source repository is private.',
+    '# Companion for Mentra is a developer preview. Its source is public under the PolyForm Noncommercial License.',
     '# Ask for access in the Discord (https://ci.computer/gg), and see the docs:',
     '# https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live'
   ];
