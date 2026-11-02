@@ -24,7 +24,7 @@ describe('app config', () => {
   test('identity follows the com.companionintelligence.<product> convention', () => {
     delete process.env.COMPANION_IOS_BUNDLE_ID;
     const config = resolve();
-    expect(config.name).toBe('Companion');
+    expect(config.name).toBe('Companion for Mentra');
     expect(APP_ID).toBe('com.companionintelligence.mentra');
     expect(config.ios?.bundleIdentifier).toBe(APP_ID);
     expect(config.android?.package).toBe(APP_ID);

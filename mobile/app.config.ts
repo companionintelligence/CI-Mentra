@@ -71,7 +71,7 @@ const SPLASH = {
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Companion',
+  name: 'Companion for Mentra',
   slug: 'companion-mentra',
   // Redirect scheme for the CI-Portal sign-in (companion://oidc/callback). Same scheme as Companion Memory.
   scheme: 'companion',
@@ -82,7 +82,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: SPLASH,
   ios: {
     bundleIdentifier: iosBundleIdentifier(),
-    buildNumber: '1',
+    buildNumber: '2',
     supportsTablet: false,
     // iOS reads its splash from here: the top-level splash has no dark variant on iOS.
     splash: SPLASH,
@@ -91,6 +91,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSMicrophoneUsageDescription: MICROPHONE_USAGE,
       // Keeps the glasses link and its events alive while the phone is locked.
       UIBackgroundModes: ['bluetooth-central'],
+      // The app uses only standard HTTPS encryption, which is exempt from export documentation.
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
