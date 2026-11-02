@@ -2,7 +2,7 @@
 // inject-crosslinks.mjs — wrap the hosted companion-UI demo (site/dist/app/index.html) in links
 // back to the Companion Intelligence site, the docs, Buy Companion Core and Download Companion.
 //
-// /app/ is public/index.html copied verbatim — it is the exact UI the bridge serves, so the
+// /app/ is public/index.html copied verbatim — it is the exact UI the server serves, so the
 // source file must not carry demo-only chrome. This step adds it to the built copy only:
 //
 //   * a slim "Demo: canned answers, nothing is saved" strip with a link back to the setup guide

@@ -1,6 +1,6 @@
 name: Publish image
 
-# Builds the bridge container and pushes it to GHCR as
+# Builds the CI-Mentra container and pushes it to GHCR as
 # ghcr.io/companionintelligence/ci-mentra — the image the CI-Marketplace
 # `ci-mentra` listing installs. Release tags (v*) publish that version;
 # a manual dispatch publishes the current commit as sha-<short>.
@@ -51,7 +51,7 @@ jobs:
             type=sha,prefix=sha-
           labels: |
             org.opencontainers.image.title=CI-Mentra
-            org.opencontainers.image.description=Companion Intelligence bridge for Mentra smart glasses
+            org.opencontainers.image.description=Companion Intelligence server for Mentra smart glasses
       - id: build
         uses: docker/build-push-action@v6
         with:

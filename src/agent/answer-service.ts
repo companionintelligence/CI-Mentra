@@ -67,7 +67,7 @@ function buildSystemPrompt(persona: string, contextBlock: string, recallBlock: s
 /**
  * The core loop: recall long-term memory + profile, compose a grounded prompt
  * with the rolling session history, generate an answer, then persist the turn.
- * Used by both the glasses voice bridge and the companion UI's BFF.
+ * Used by the companion UI's BFF.
  */
 export async function answer(input: AnswerInput): Promise<AnswerResult> {
   const sessionId = input.sessionId;

@@ -1,7 +1,7 @@
 {
   "name": "mentra-bridge",
   "version": "1.0.0",
-  "description": "TypeScript/Node.js voice agent backend for Mentra Live smart glasses",
+  "description": "TypeScript/Node.js OpenAI-compatible facade and Companion API for Companion Intelligence",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -15,7 +15,6 @@
     "site:deploy": "npm run site:build && npx --yes wrangler@4 deploy --config site/wrangler.jsonc"
   },
   "dependencies": {
-    "@mentra/sdk": "^2.1.29",
     "axios": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.0",

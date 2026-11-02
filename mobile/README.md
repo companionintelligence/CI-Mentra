@@ -4,7 +4,7 @@ A phone companion app for **Mentra Live** smart glasses, for iOS and Android. It
 the glasses directly over Bluetooth Low Energy through the **Mentra Bluetooth SDK 3.3.0**
 (`@mentra/bluetooth-sdk`), the supported path for phone apps since MentraOS 3.0.
 
-It does not use the old cloud SDK `@mentra/sdk` that the server in `../src` is built on.
+It does not use the old cloud SDK `@mentra/sdk`, which the root server no longer depends on.
 That SDK has produced no sessions since MentraOS 3.0 (2026-08-03).
 
 > **Status: v1, not verified on hardware.** The iOS Debug build compiles with Xcode 27 and

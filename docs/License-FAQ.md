@@ -4,7 +4,7 @@
 
 The license grants free rights to use, modify, and redistribute Companion Mentra source code for personal or nonprofit purposes. The intent is to stay permissive for those uses while limiting commercial abuse of Companion Intelligence products.
 
-Companion Mentra is a Device-layer bridge for Mentra smart glasses: it turns voice input captured on the glasses into an LLM response spoken back to the wearer, and exposes an OpenAI-compatible API surface (`/v1/*`) so the rest of the Companion Intelligence platform can talk to it like any other model provider.
+Companion Mentra is the server side of Companion for Mentra. It exposes an OpenAI-compatible API surface (`/v1/*`) so the rest of the Companion Intelligence platform can talk to it like any other model provider. The glasses are used through the phone app in `mobile/`.
 
 Companion Mentra uses the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). The full text is in [`LICENSE.md`](../LICENSE.md).
 

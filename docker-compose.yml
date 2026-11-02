@@ -22,7 +22,6 @@ services:
     env_file:
       - .env
     ports:
-      - "7010:7010"
       - "8080:8080"
     volumes:
       - companion_photos:/app/data/companion-photos
