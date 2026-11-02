@@ -5,7 +5,7 @@
 #   public/*       -> site/dist/app/      the companion UI, served against the demo BFF
 #   public/brand   -> site/dist/brand/    canon tokens for the setup page
 #
-# The companion UI is copied verbatim so the demo is exactly what the bridge serves; the only
+# The companion UI is copied verbatim so the demo is exactly what the server serves; the only
 # additions are the build-time steps below (demo bar and footer, SEO, analytics, fingerprints).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
