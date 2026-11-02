@@ -219,6 +219,7 @@ describe('built site', () => {
     expect(html).toContain('You can’t install Companion for Mentra yet.');
     expect(html).not.toMatch(/stay on hardware you control/i);
     expect(html).toContain('Version 1 doesn’t upload audio, photos or video.');
+    expect(html).toContain('The app turns off the Mentra SDK’s usage analytics.');
     expect(html).not.toContain('git clone https://github.com');
   });
 
