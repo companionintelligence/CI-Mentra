@@ -30,11 +30,11 @@ const PAGES = [
     file: 'index.html',
     path: '/',
     src: ['site/public/index.html', 'site/public/site.css', 'site/public/env-builder.js', 'site/public/setup.js', 'scripts/inject-seo.mjs'],
-    title: 'Companion for Mentra: setup guide | Companion Intelligence',
+    title: 'Companion for Mentra | Companion Intelligence',
     name: 'Companion for Mentra',
     // 160 characters or fewer, so search results do not truncate it (checked by the site tests).
     description:
-      'Companion for Mentra is a developer preview: a voice companion with memory for Mentra Live glasses. See how it works, build its settings file and try the demo.',
+      'Companion for Mentra is a phone app for Mentra Live glasses, built on the Mentra Bluetooth SDK. iOS and Android apps are in development.',
   },
   {
     file: 'app/index.html',
