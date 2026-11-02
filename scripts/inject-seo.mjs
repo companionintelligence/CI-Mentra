@@ -15,6 +15,8 @@ const SITE_NAME = 'Companion Intelligence';
 const dist = resolve(process.argv[2] || 'site/dist');
 const root = resolve(dist, '..', '..');
 const OG_IMAGE = `${ORIGIN}/og.png`;
+// The social card (public/og.png) shows the name and the tagline, so the alt text says the same.
+const OG_ALT = 'Companion for Mentra: your companion, in your glasses.';
 
 const ORG = { '@type': 'Organization', '@id': 'https://ci.computer/#organization', name: SITE_NAME, url: 'https://ci.computer' };
 const WEBSITE = { '@type': 'WebSite', '@id': `${ORIGIN}/#website`, name: 'Companion for Mentra', url: `${ORIGIN}/`, publisher: { '@id': ORG['@id'] } };
@@ -75,20 +77,24 @@ function block(p) {
   const lines = [
     '<!-- seo:begin -->',
     `<meta name="description" content="${esc(p.description)}">`,
-    ...(url ? [`<link rel="canonical" href="${url}">`] : ['<meta name="robots" content="noindex">']),
+    ...(url
+      ? [`<meta name="robots" content="index, follow, max-image-preview:large">`, `<link rel="canonical" href="${url}">`]
+      : ['<meta name="robots" content="noindex">']),
     `<meta property="og:site_name" content="${SITE_NAME}">`,
     `<meta property="og:type" content="website">`,
+    `<meta property="og:locale" content="en_US">`,
     `<meta property="og:title" content="${esc(p.title)}">`,
     `<meta property="og:description" content="${esc(p.description)}">`,
     ...(url ? [`<meta property="og:url" content="${url}">`] : []),
     `<meta property="og:image" content="${OG_IMAGE}">`,
     `<meta property="og:image:width" content="1200">`,
     `<meta property="og:image:height" content="630">`,
-    `<meta property="og:image:alt" content="Companion for Mentra: your companion, in your glasses.">`,
+    `<meta property="og:image:alt" content="${esc(OG_ALT)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${esc(p.title)}">`,
     `<meta name="twitter:description" content="${esc(p.description)}">`,
     `<meta name="twitter:image" content="${OG_IMAGE}">`,
+    `<meta name="twitter:image:alt" content="${esc(OG_ALT)}">`,
     // Fetchable icon files (crawlers, link unfurlers and iOS cannot use an inline data: icon).
     `<link rel="icon" href="/favicon.ico" sizes="32x32">`,
     `<link rel="icon" href="/icon.svg" type="image/svg+xml">`,

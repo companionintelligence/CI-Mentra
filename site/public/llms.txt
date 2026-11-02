@@ -1,0 +1,20 @@
+# Companion for Mentra
+
+> Companion for Mentra is a phone app for Mentra Live glasses, built on the Mentra Bluetooth SDK. It is part of the Companion Intelligence platform (https://ci.computer/). The iOS and Android apps are in development and have no store listing yet.
+
+The phone app connects to the glasses over Bluetooth. It shows the glasses' status and button or touch events, and it sends text to glasses that have a display. With CI-Portal sign-in and Capture to memory turned on, it also sends what the wearer says (final transcripts), button and touch events, head movement and battery changes to the Companion Memory on your own appliance. Raw microphone audio is not uploaded. Photos go to your appliance only when you press Take a photo. Usage analytics from the Mentra Bluetooth SDK are turned off, but the SDK still makes one update check when it starts.
+
+The website at https://mentra.ci.computer/ has the status and the legacy bridge setup, kept for reference. The demo UI at https://mentra.ci.computer/app/ runs on canned answers. It stores nothing and needs no account.
+
+## Pages
+
+- [Home](https://mentra.ci.computer/): what Companion for Mentra is, its status and the legacy bridge setup
+- [Demo UI](https://mentra.ci.computer/app/): the companion UI with canned answers, for trying it in a browser
+
+## Optional
+
+- [Mentra Live docs](https://docs.ci.computer/docs/apps-available/first-party-apps/mentra-live): Companion documentation for Mentra Live
+- [Source code](https://github.com/companionintelligence/CI-Mentra): project README, the mobile app and the site source
+- [Companion Intelligence](https://ci.computer/): the platform this app belongs to
+
+Support: support@ci.computer
