@@ -24,6 +24,7 @@ That SDK has produced no sessions since MentraOS 3.0 (2026-08-03).
 | **Display** | Send a line of text to the glasses and clear it. Offered only when the glasses are connected, fully booted, and the connected model is documented to have a display. Mentra Live has none, so Mentra Live users never see it. Updates are debounced (400 ms, latest value wins, never two sends in flight). |
 | **Events** | Live feed of button presses, touchpad taps, swipes and head-position changes, newest first. |
 | **Console** | The SDK's diagnostic `log` stream next to the app's own actions and errors, filterable. Kept in memory only (last 300 lines). |
+| **Companion** | Optional. Sign in with CI-Portal, point the app at your appliance, and choose what to send to Companion Memory. Ask the agent by typing or by voice after a short button press. Take a photo on request. See [Companion: sign-in, memory and the agent](#companion-sign-in-memory-and-the-agent). |
 
 Every feature is gated by the connected model and its status. `src/lib/models.ts` holds the
 capability table; only hardware that the SDK docs describe is marked capable, and any other
@@ -33,13 +34,12 @@ model gets no capabilities until it has been verified.
 
 These are left out on purpose. The app has no placeholder UI for them.
 
-- Camera capture, photo upload and video upload
+- Video capture and upload (photos are sent only when you press **Take a photo**)
 - Streaming (RTMP, SRT, WebRTC) and the GStreamer receiver
 - Glasses software updates (OTA)
 - Barcode scanning
-- Voice: microphone audio, transcription, ElevenLabs, a voice agent
+- Raw microphone audio upload, ElevenLabs and a voice agent (the app sends the SDK's on-device transcripts)
 - Wi-Fi setup and hotspot control (status is shown read-only)
-- Hand-off to Companion Memory / Companion Hub
 - Brand typeface (Manrope) and a branded splash screen; `expo-system-ui` so Android's window
   background follows dark mode
 - Android 13+ notification permission, so the foreground-service notification is visible
@@ -166,6 +166,50 @@ The tests cover the pure helpers in `src/lib`, the brand palette against
 so the repository-root Jest config does not pick them up. Nothing in the tests loads React
 Native or the SDK runtime.
 
+## Companion: sign-in, memory and the agent
+
+Signing in and sending glasses data is optional, and nothing is sent until you turn it on.
+
+1. **CI-Portal sign-in.** The app signs in with CI-Portal (Authorization Code with PKCE) as the
+   public client `ci-mentra`. That is the same identity provider as Companion Memory and the other
+   Companion apps. The redirect is `companion://oidc/callback`. The tokens are kept in the device
+   keystore.
+2. **Your appliance.** Enter its https address in the Companion panel. The appliance is the CI-Mentra
+   server in this repository. It holds the agent (through the Hub) and Companion Memory, and it accepts
+   the CI-Portal access token only from its owner (`MENTRA_ALLOWED_USERS`).
+3. **Capture to memory.** With capture on and the glasses connected, the glasses microphone runs, and
+   each final transcript is stored as a memory. Button presses, touch gestures, head movement (throttled)
+   and battery reports (every 15 minutes) are stored too. The glasses show their own indicator while the
+   microphone is on. Raw audio is never sent.
+
+Ask your companion by typing a question, or press the glasses button briefly and then ask within 20
+seconds. The answer appears in the app and on the glasses when the model has a display. **Take a photo**
+asks the glasses for a photo. The SDK sends it through the phone to the appliance, which keeps it under
+`COMPANION_PHOTO_DIR` and notes it in memory.
+
+Before sign-in works, these must be in place:
+
+- **CI-Portal** lists `ci-mentra` as a public client. Add `{ clientId: 'ci-mentra', name: 'Companion for Mentra' }`
+  to `PUBLIC_CLIENTS` in `apps/hono-app/src/domains/core/services/oidcClients.ts`. The redirect
+  `companion://oidc/callback` is already on Portal's allowlist for native apps.
+- **The appliance** runs with `PORTAL_OIDC_ENABLED=true`, `MENTRA_ALLOWED_USERS` set to the owner's email,
+  `PORTAL_OIDC_AUDIENCE` including `ci-mentra` (its default), and memory on (`MENTRA_MEMORY_ENABLED=true`
+  with a memory key).
+- **An https address** for the appliance, such as a Tailscale HTTPS name or a Hub tunnel. iOS refuses
+  plain http except to localhost.
+
+Known limits of this version:
+
+- The on-device transcript path (`setMicState(true, true, true, false)` and `local_transcription`) is
+  written against the SDK 3.3.0 typings. It has not been run on Mentra Live glasses yet.
+- Raw audio is not uploaded. Phone location, calendar and notifications are not read, because each needs
+  its own permission and config plugin.
+- Photos stay on the appliance, with no gallery or viewer yet.
+- Records waiting to be sent are plain JSON in the app's documents folder until the appliance has saved
+  them.
+- The Companion Memory app uses the same `companion://` scheme. Check on a phone with both installed
+  that the sign-in returns to this app.
+
 ## Project layout
 
 ```text
@@ -176,6 +220,8 @@ mobile/
     App.tsx            safe-area shell, tab bar, owns the one Bluetooth session
     session/           useCompanionSession (SDK hook wrapper, events, actions),
                        Android permission requests, saved-glasses storage
+    companion/         CI-Portal sign-in, the appliance client, the capture queue, asking and
+                       photos; the pure helpers are unit-tested
     lib/               pure, unit-tested helpers: models and capabilities, status labels,
                        saved-device record, event and log feed, debounced sender, permissions
     screens/           Glasses, Events, Console
@@ -214,9 +260,11 @@ on iOS, `com.ci.memory` on Android). To sign a device build under a different Ap
 
 ## Privacy
 
-**The app makes no network requests of its own in v1.** There is no backend, no telemetry and
-no `fetch` anywhere in `src/`. In debug builds the app loads its JavaScript from the Metro
-server on your computer; that is development only.
+**The app makes no network requests until you sign in or turn on capture.** There is no telemetry.
+Sign-in and token refresh talk to CI-Portal. Glasses data, questions and photos go only to the
+appliance address you entered, and only with a Portal token that belongs to the appliance owner. In
+debug builds the app loads its JavaScript from the Metro server on your computer; that is development
+only.
 
 The SDK makes these requests on its own:
 
@@ -234,9 +282,8 @@ The SDK makes these requests on its own:
   platform and version. Mentra records each check. It runs whether or not analytics are
   disabled, and the SDK 3.3.0 README documents no switch to turn it off. If a network blocks
   `core.mentraglass.com`, only a developer-console banner about new SDK versions is lost.
-- **Not used in v1:** the SDK's OTA downloads, photo and video uploads, streaming, and its
-  local photo-upload and OTA servers only run when an app starts those features. This app
-  never does.
+- **Not used:** the SDK's OTA downloads, video uploads and streaming. A photo upload runs only
+  when you press **Take a photo**, and it goes to your appliance.
 
 Permissions:
 
@@ -252,9 +299,11 @@ Permissions:
   background-location prompt. The storage and overlay permissions from the Expo template, and
   the unused foreground-service types, are removed from the manifest.
 
-On-device data: one file, `companion-saved-glasses.json` in the app's documents directory,
-holding the ID, model, name and Bluetooth address of the last connected glasses (no pairing
-code). **Forget** deletes it. The event feed and console live in memory and are never
+On-device data: `companion-saved-glasses.json` in the app's documents directory holds the ID, model,
+name and Bluetooth address of the last connected glasses (no pairing code). **Forget** deletes it.
+Companion adds `companion-settings.json` (your choices) and `companion-capture-queue.json` (glasses
+records not yet saved by the appliance, held as plain text until they are sent). CI-Portal tokens are
+kept in the device keystore, and **Sign out** removes them. The event feed and console live in memory and are never
 uploaded; the console records how many characters were sent to the display, not the text.
 
 ## Signing and store builds

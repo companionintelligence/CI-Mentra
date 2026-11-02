@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import multer from 'multer';
 import { config } from '../config.ts';
 import {
   requireCompanionAuth,
@@ -9,6 +10,8 @@ import * as answerService from '../agent/answer-service.ts';
 import * as companionMemory from '../memory/companion-memory.ts';
 import * as sessionHistory from '../agent/session-history.ts';
 import pino from 'pino';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
 const logger = pino({ name: 'companion-api' });
 
@@ -84,8 +87,8 @@ function bodyOf(req: Request): Record<string, unknown> {
  */
 companionRouter.get(
   '/status',
-  handle('status', (req, res) => {
-    const identity = resolveCompanionIdentity(req);
+  handle('status', async (req, res) => {
+    const identity = await resolveCompanionIdentity(req);
     res.json({
       authenticated: Boolean(identity),
       user: identity
@@ -174,5 +177,156 @@ companionRouter.get(
       content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
     }));
     res.json({ messages });
+  })
+);
+
+const CAPTURE_KINDS = ['speech', 'input', 'device', 'photo'] as const;
+type CaptureKind = (typeof CAPTURE_KINDS)[number];
+
+const CAPTURE_TITLES: Record<CaptureKind, string> = {
+  speech: 'Glasses speech',
+  input: 'Glasses input',
+  device: 'Glasses status',
+  photo: 'Glasses photo',
+};
+
+const CAPTURE_MAX_RECORDS = 100;
+const CAPTURE_MAX_TEXT = 1000;
+const CAPTURE_WRITE_CONCURRENCY = 4;
+const PHOTO_MAX_BYTES = 15 * 1024 * 1024;
+const PHOTO_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+interface CaptureRecord {
+  id: string;
+  kind: CaptureKind;
+  text: string;
+  at: string;
+}
+
+/** Keep a client-supplied value safe to use as one path segment. */
+function safeSegment(value: string): string {
+  return value.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 128) || 'unknown';
+}
+
+/**
+ * Validate a capture batch. Returns null when the batch is unusable (the
+ * request is answered 400). Every field is checked here and not trusted past
+ * this point.
+ */
+function parseCaptureRecords(value: unknown): CaptureRecord[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > CAPTURE_MAX_RECORDS) {
+    return null;
+  }
+  const records: CaptureRecord[] = [];
+  for (const item of value) {
+    if (typeof item !== 'object' || item === null) return null;
+    const { id, kind, text, at } = item as Record<string, unknown>;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9._:-]{1,64}$/.test(id)) return null;
+    if (typeof kind !== 'string' || !(CAPTURE_KINDS as readonly string[]).includes(kind)) return null;
+    if (typeof text !== 'string' || !text.trim()) return null;
+    const stamp = typeof at === 'string' && !Number.isNaN(Date.parse(at)) ? new Date(at) : new Date();
+    records.push({
+      id,
+      kind: kind as CaptureKind,
+      text: text.trim().slice(0, CAPTURE_MAX_TEXT),
+      at: stamp.toISOString(),
+    });
+  }
+  return records;
+}
+
+/** A memory title such as "Glasses speech, 2026-11-02 09:15 UTC". */
+function captureTitle(kind: CaptureKind, at: string): string {
+  return `${CAPTURE_TITLES[kind]}, ${at.slice(0, 16).replace('T', ' ')} UTC`;
+}
+
+/**
+ * Glasses data from the phone app, in batches. Each record becomes one memory
+ * fragment titled by its kind and time. The reply lists the ids that were saved
+ * and the ids memory failed on, so the phone clears only what was stored and
+ * retries the rest. With memory off, nothing is stored and the phone is told.
+ */
+companionRouter.post(
+  '/capture',
+  handle('capture', async (req, res) => {
+    const { userId } = req as CompanionRequest;
+    const records = parseCaptureRecords(bodyOf(req).records);
+    if (records === null) {
+      badRequest(
+        res,
+        '`records` must be an array of 1 to 100 objects, each with an `id`, a `kind` (speech, input, device or photo) and non-empty `text`.'
+      );
+      return;
+    }
+    if (!companionMemory.isMemoryEnabled()) {
+      res.json({ memoryEnabled: false, saved: [], failed: [] });
+      return;
+    }
+
+    const sessionId = scopedSessionId(userId, 'glasses');
+    const saved: string[] = [];
+    const failed: string[] = [];
+    for (let i = 0; i < records.length; i += CAPTURE_WRITE_CONCURRENCY) {
+      const chunk = records.slice(i, i + CAPTURE_WRITE_CONCURRENCY);
+      const results = await Promise.all(
+        chunk.map((record) =>
+          companionMemory.writeMemory(record.text, { title: captureTitle(record.kind, record.at), sessionId })
+        )
+      );
+      chunk.forEach((record, index) => (results[index] ? saved : failed).push(record.id));
+    }
+    res.json({ memoryEnabled: true, saved, failed });
+  })
+);
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: PHOTO_MAX_BYTES, files: 1 },
+});
+
+/**
+ * A photo the phone asked the glasses to take. The SDK uploads it as multipart
+ * form data (a `photo` file and a `requestId`) with the phone's bearer token, so
+ * it passes the same owner check as everything else. The file is kept under
+ * COMPANION_PHOTO_DIR and noted in memory.
+ */
+companionRouter.post(
+  '/capture/photo',
+  photoUpload.single('photo'),
+  handle('capture/photo', async (req, res) => {
+    const { userId } = req as CompanionRequest;
+    const file = (req as Request & { file?: { buffer: Buffer; size: number; mimetype: string } }).file;
+    if (!file || file.size === 0) {
+      badRequest(res, 'A `photo` file is required.');
+      return;
+    }
+    const extension = PHOTO_EXTENSIONS[file.mimetype];
+    if (!extension) {
+      res.status(415).json({ error: { message: 'Photos must be JPEG, PNG or WebP.', type: 'invalid_request_error' } });
+      return;
+    }
+
+    const requestId = readOptionalString(bodyOf(req).requestId) ?? `photo-${Date.now()}`;
+    const now = new Date().toISOString();
+    const name = `${now.replace(/[:.]/g, '-')}-${safeSegment(requestId)}.${extension}`;
+    const dir = path.join(config.companion.photoDir, safeSegment(userId));
+    await mkdir(dir, { recursive: true, mode: 0o700 });
+    await writeFile(path.join(dir, name), file.buffer, { mode: 0o600 });
+
+    const noted = await companionMemory.writeMemory(
+      `A photo from your glasses was saved on this appliance as ${name}.`,
+      { title: captureTitle('photo', now), sessionId: scopedSessionId(userId, 'glasses') }
+    );
+    res.json({
+      stored: true,
+      fileName: name,
+      contentType: file.mimetype,
+      fileSizeBytes: file.size,
+      memorySaved: noted,
+    });
   })
 );

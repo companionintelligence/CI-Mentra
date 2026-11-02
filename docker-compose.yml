@@ -24,8 +24,11 @@ services:
     ports:
       - "7010:7010"
       - "8080:8080"
+    volumes:
+      - companion_photos:/app/data/companion-photos
     depends_on:
       - postgres
       - redis
 volumes:
   postgres_data:
+  companion_photos:

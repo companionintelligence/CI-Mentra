@@ -211,6 +211,11 @@ export const config = {
     language: process.env.MENTRA_LANGUAGE || 'en-US',
     maxHistoryTurns: parseInt(process.env.MENTRA_MAX_HISTORY_TURNS || '8'),
   },
+  /** Glasses capture for the phone app. */
+  companion: {
+    /** Where photos the glasses upload are kept. Mount a volume at this path in Docker. */
+    photoDir: process.env.COMPANION_PHOTO_DIR || './data/companion-photos',
+  },
   /** Dev-only conveniences. Never enable in production. */
   dev: {
     // Lets the companion UI + BFF work without a login (local development only).

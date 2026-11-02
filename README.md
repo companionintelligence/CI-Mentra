@@ -29,9 +29,13 @@
 The phone app for Mentra Live glasses lives in [`mobile/`](mobile/README.md). It is
 an Expo app built on the
 [Mentra Bluetooth SDK](https://docs.mentraglass.com/bluetooth-sdk/overview), which
-connects the phone straight to the glasses over Bluetooth. Version 1 scans for
+connects the phone straight to the glasses over Bluetooth. The app scans for
 glasses, connects, shows device status and button or touch events, and sends text
-to glasses that have a display. It doesn't upload audio, photos or video.
+to glasses that have a display. With CI-Portal sign-in and **Capture to memory** on,
+it also sends what the wearer says (final transcripts), button and touch events, and
+battery changes to your appliance's memory. It can ask the agent a question and take a
+photo on request. Raw audio is not uploaded. See
+[the phone app's companion section](mobile/README.md#companion-sign-in-memory-and-the-agent).
 
 ```bash
 cd mobile
@@ -287,6 +291,8 @@ the façade (OIDC session cookie, Portal bearer, or `FACADE_API_KEY`).
 | `POST /api/companion/memory/remember` | Save a durable memory fragment |
 | `GET /api/companion/profile` | The L0 profile/context block for this wearer |
 | `GET /api/companion/history` | The rolling short-term history for a `sessionId` |
+| `POST /api/companion/capture` | Store a batch of glasses records (speech, input, device, photo) as memory fragments. The reply lists the ids saved and the ids that failed |
+| `POST /api/companion/capture/photo` | Store a photo the glasses upload as multipart `photo`, under `COMPANION_PHOTO_DIR`, and note it in memory |
 
 `GET /health` reports `companionUi.path` and `companionUi.devAnonymous`.
 
