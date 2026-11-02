@@ -75,4 +75,27 @@ describe('evaluatePermissionResults', () => {
     expect(evaluatePermissionResults(30, { [ACCESS_FINE_LOCATION]: 'denied' }).ok).toBe(false);
     expect(evaluatePermissionResults(30, { [ACCESS_FINE_LOCATION]: 'granted' }).ok).toBe(true);
   });
+
+  test('one blocked permission is named in the singular', () => {
+    const verdict = evaluatePermissionResults(33, {
+      [BLUETOOTH_SCAN]: 'never_ask_again',
+      [BLUETOOTH_CONNECT]: 'granted',
+      [ACCESS_FINE_LOCATION]: 'granted',
+    });
+    expect(describeVerdict(verdict)).toBe(
+      'Nearby devices permission is turned off. Open Settings to allow it, then try again.',
+    );
+  });
+
+  test('two refused permissions with different labels are named together, in the plural', () => {
+    const verdict = evaluatePermissionResults(33, {
+      [BLUETOOTH_SCAN]: 'denied',
+      [BLUETOOTH_CONNECT]: 'granted',
+      [ACCESS_FINE_LOCATION]: 'denied',
+    });
+    expect(verdict.blocked).toEqual([]);
+    expect(describeVerdict(verdict)).toBe(
+      'Companion needs Nearby devices and Location permissions to find and connect to your glasses.',
+    );
+  });
 });

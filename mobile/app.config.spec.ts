@@ -75,4 +75,20 @@ describe('app config', () => {
       expect.arrayContaining(['./plugins/withPodsDeploymentTarget', './plugins/withSceneLifecycle']),
     );
   });
+
+  test('icon, adaptive icon and splash point at the brand mark assets', () => {
+    const config = resolve();
+    expect(config.icon).toBe('./assets/icon.png');
+    expect(config.android?.adaptiveIcon).toEqual({
+      foregroundImage: './assets/adaptive-icon.png',
+      monochromeImage: './assets/adaptive-icon-monochrome.png',
+      backgroundColor: '#041620',
+    });
+    expect(config.splash).toEqual({
+      image: './assets/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#f3faf7',
+      dark: { image: './assets/splash-icon-dark.png', backgroundColor: '#041620' },
+    });
+  });
 });

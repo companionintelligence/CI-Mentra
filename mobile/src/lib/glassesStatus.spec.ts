@@ -95,6 +95,8 @@ describe('status labels', () => {
     expect(hotspotLabel(glasses)).not.toContain('secret-pass');
     expect(wifiLabel(connected())).toBe('Not connected');
     expect(hotspotLabel(disconnected)).toBe('Off');
+    expect(wifiLabel(disconnected)).toBe('Not connected');
+    expect(hotspotLabel(connected())).toBe('Off');
   });
 
   test('Wi-Fi rows show only for models documented to report Wi-Fi', () => {
@@ -107,6 +109,7 @@ describe('status labels', () => {
   test('connected name falls back sensibly', () => {
     expect(connectedNameLabel(connected(), 'Saved')).toBe('Mentra Live 1A2B');
     expect(connectedNameLabel(connected({ device: {} }), 'Saved')).toBe('Saved');
+    expect(connectedNameLabel(connected({ device: {} }), undefined)).toBe('Glasses');
     expect(connectedNameLabel(disconnected, undefined)).toBe('Glasses');
   });
 });

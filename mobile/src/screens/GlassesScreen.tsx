@@ -305,6 +305,9 @@ function DisplayCard({ session }: { session: CompanionSession }) {
         accessibilityLabel="Text to show on your glasses"
         style={[styles.input, { color: palette.foreground, borderColor: palette.border, backgroundColor: palette.background }]}
       />
+      <Text style={[styles.counter, { color: palette.mutedForeground }]} accessibilityLabel={`${text.length} of ${DISPLAY_TEXT_MAX_LENGTH} characters`}>
+        {text.length}/{DISPLAY_TEXT_MAX_LENGTH}
+      </Text>
       <View style={styles.switchRow}>
         <Text style={[styles.body, styles.flex, { color: palette.foreground }]}>Update as I type</Text>
         <Switch
@@ -354,4 +357,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  counter: { fontSize: 13, textAlign: 'right' },
 });

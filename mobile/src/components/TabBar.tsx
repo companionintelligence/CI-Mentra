@@ -43,10 +43,16 @@ export function TabBar({
             onPress={() => onChange(tab.key)}
             style={styles.tab}>
             <View style={[styles.indicator, { backgroundColor: selected ? palette.primary : 'transparent' }]} />
-            <Text style={[styles.label, { color: selected ? palette.foreground : palette.mutedForeground, fontWeight: selected ? '700' : '500' }]}>
-              {tab.label}
-              {badge > 0 ? ` · ${badge > 99 ? '99+' : badge}` : ''}
-            </Text>
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, { color: selected ? palette.foreground : palette.mutedForeground, fontWeight: selected ? '700' : '500' }]}>
+                {tab.label}
+              </Text>
+              {badge > 0 ? (
+                <View style={[styles.badge, { backgroundColor: palette.primary }]}>
+                  <Text style={[styles.badgeLabel, { color: palette.primaryForeground }]}>{badge > 99 ? '99+' : badge}</Text>
+                </View>
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
@@ -62,5 +68,8 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 6 },
   indicator: { width: 28, height: 3, borderRadius: 2 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontSize: 15 },
+  badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
+  badgeLabel: { fontSize: 12, fontWeight: '700' },
 });

@@ -42,7 +42,7 @@ function AppShell() {
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
         <CompanionPanel companion={companion} />
         {tab === 'glasses' ? <GlassesScreen session={session} /> : null}
-        {tab === 'events' ? <EventsScreen session={session} /> : null}
+        {tab === 'events' ? <EventsScreen session={session} onGoToGlasses={() => setTab('glasses')} /> : null}
         {tab === 'console' ? <ConsoleScreen session={session} /> : null}
       </SafeAreaView>
       <TabBar active={tab} onChange={setTab} badges={{ events: tab === 'events' ? 0 : unseenEvents }} />

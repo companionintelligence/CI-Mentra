@@ -55,6 +55,20 @@ export const ANDROID_BLOCKED_PERMISSIONS = [
   'android.permission.SYSTEM_ALERT_WINDOW',
 ];
 
+/**
+ * The launch screen, shared by the top level (Android) and `ios.splash`. The colour mark is drawn
+ * for dark grounds only, so the light splash uses the black ink.
+ */
+const SPLASH = {
+  image: './assets/splash-icon.png',
+  resizeMode: 'contain',
+  backgroundColor: '#f3faf7',
+  dark: {
+    image: './assets/splash-icon-dark.png',
+    backgroundColor: '#041620',
+  },
+} satisfies ExpoConfig['splash'];
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Companion',
@@ -65,10 +79,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/icon.png',
+  splash: SPLASH,
   ios: {
     bundleIdentifier: iosBundleIdentifier(),
     buildNumber: '1',
     supportsTablet: false,
+    // iOS reads its splash from here: the top-level splash has no dark variant on iOS.
+    splash: SPLASH,
     infoPlist: {
       NSBluetoothAlwaysUsageDescription: BLUETOOTH_USAGE,
       NSMicrophoneUsageDescription: MICROPHONE_USAGE,
@@ -81,6 +98,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     versionCode: 1,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
+      monochromeImage: './assets/adaptive-icon-monochrome.png',
       backgroundColor: '#041620',
     },
     permissions: ANDROID_PERMISSIONS,
@@ -120,5 +138,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     './plugins/withConnectedDeviceForegroundService',
     './plugins/withPodsDeploymentTarget',
     './plugins/withSceneLifecycle',
+    './plugins/withIosSplashBackgroundFromAssets',
   ],
 });
