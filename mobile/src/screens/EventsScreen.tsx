@@ -1,6 +1,6 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Hint, ScreenTitle } from '../components/ui';
+import { Button, Hint, ScreenTitle } from '../components/ui';
 import { formatClock, type InputFeedItem, type InputKind } from '../lib/feed';
 import type { CompanionSession } from '../session/useCompanionSession';
 import { monoFont, radius, space, usePalette, type Palette } from '../theme';
@@ -26,7 +26,7 @@ function kindColor(palette: Palette, kind: InputKind): string {
 }
 
 /** Live feed of button, touch, swipe and head-position events from the glasses. */
-export function EventsScreen({ session }: { session: CompanionSession }) {
+export function EventsScreen({ session, onGoToGlasses }: { session: CompanionSession; onGoToGlasses?: () => void }) {
   const palette = usePalette();
   const { inputEvents, glasses } = session;
   return (
@@ -53,6 +53,11 @@ export function EventsScreen({ session }: { session: CompanionSession }) {
               Press the button or use the touchpad on your glasses. Each press, tap, swipe and head
               movement the glasses report shows up here, newest first.
             </Hint>
+            {!glasses.connected && onGoToGlasses ? (
+              <View style={styles.emptyAction}>
+                <Button label="Connect glasses" onPress={onGoToGlasses} />
+              </View>
+            ) : null}
           </View>
         }
       />
@@ -81,7 +86,8 @@ function EventRow({ item }: { item: InputFeedItem }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   list: { paddingHorizontal: space.lg, paddingBottom: space.xl, gap: space.sm },
-  empty: { paddingTop: space.lg },
+  empty: { paddingTop: space.lg, gap: space.lg },
+  emptyAction: { alignSelf: 'stretch' },
   clear: { minHeight: 44, justifyContent: 'center' },
   clearLabel: { fontSize: 16, fontWeight: '600' },
   row: {

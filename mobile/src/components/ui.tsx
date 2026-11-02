@@ -192,7 +192,7 @@ export function Chip({
         styles.chip,
         {
           backgroundColor: selected ? palette.primary : palette.card,
-          borderColor: selected ? palette.primary : palette.border,
+          borderColor: selected ? palette.primary : palette.mutedForeground,
           opacity: disabled ? 0.45 : 1,
         },
       ]}>

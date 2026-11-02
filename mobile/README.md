@@ -149,7 +149,8 @@ the smaller arm64-only APK (about 94 MB) with `./gradlew assembleRelease -Preact
 
 `ios/` and `android/` are produced by `npx expo prebuild` from `app.config.ts` and the config
 plugins (continuous native generation) and are git-ignored. Never edit them by hand: change
-`app.config.ts` or a plugin, then run `npx expo prebuild --clean`. The SDK's config plugin
+`app.config.ts` or a plugin, then run `npx expo prebuild --clean`. A plain prebuild can keep a stale
+`SplashScreen.storyboard` and drop the splash image, so splash changes need `--clean`. The SDK's config plugin
 also writes machine-specific paths into them (the Node binary for Xcode and Gradle, the SDK
 package path in `settings.gradle`), which is another reason they are not committed.
 
@@ -182,7 +183,7 @@ mobile/
     components/        small UI kit and tab bar
     theme/             brand palette (light and dark) from the canonical tokens
   plugins/             Expo config plugins (see below)
-  assets/              placeholder app icons
+  assets/              app icons, splash images and the editable mark source
 ```
 
 ### Config plugins
@@ -368,5 +369,6 @@ this folder is under the repository license, [`LICENSE.md`](../LICENSE.md).
 | `src/screens/ConsoleScreen.tsx` | `src/screens/ConsoleScreen.tsx` |
 | `src/components/TabBar.tsx` | `src/components/TabBar.tsx` |
 
-The app icons are placeholders made from this repository's own ring mark
-(`../site/public/icon.svg`), not from the starter kit.
+The app icons and the native splash use the official Companion Intelligence mark, copied from the
+CI-Common brand assets (`assets/logos/mark-tight.svg`). The editable copy is `assets/source/companion-mark.svg`.
+The starter kit's artwork is not used.

@@ -1,4 +1,4 @@
-import type { TouchGesture } from '@mentra/bluetooth-sdk';
+import type { TouchEvent, TouchGesture } from '@mentra/bluetooth-sdk';
 
 import {
   describeButtonPress,
@@ -42,6 +42,20 @@ describe('input event descriptions', () => {
       title: 'Forward swipe',
       detail: 'Touchpad · Mentra Live',
     });
+  });
+
+  test('a touch event with no gesture name reads as an unknown tap', () => {
+    expect(describeTouch({ type: 'touch_event', deviceModel: 'Mentra Live', gestureName: '', timestamp: 1 })).toEqual({
+      kind: 'touch',
+      title: 'Unknown gesture',
+      detail: 'Touchpad · Mentra Live',
+    });
+  });
+
+  test('a touch event without a device model describes only the touchpad', () => {
+    // The SDK types deviceModel as required; describeTouch still guards against events without it.
+    const event = { type: 'touch_event', gestureName: 'single_tap', timestamp: 1 } as unknown as TouchEvent;
+    expect(describeTouch(event)).toEqual({ kind: 'touch', title: 'Single tap', detail: 'Touchpad' });
   });
 
   test('head position', () => {

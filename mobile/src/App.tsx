@@ -38,7 +38,7 @@ function AppShell() {
       <StatusBar barStyle={palette.scheme === 'dark' ? 'light-content' : 'dark-content'} />
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
         {tab === 'glasses' ? <GlassesScreen session={session} /> : null}
-        {tab === 'events' ? <EventsScreen session={session} /> : null}
+        {tab === 'events' ? <EventsScreen session={session} onGoToGlasses={() => setTab('glasses')} /> : null}
         {tab === 'console' ? <ConsoleScreen session={session} /> : null}
       </SafeAreaView>
       <TabBar active={tab} onChange={setTab} badges={{ events: tab === 'events' ? 0 : unseenEvents }} />

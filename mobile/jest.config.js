@@ -13,6 +13,8 @@ module.exports = {
   testMatch: ['**/*.spec.ts'],
   testPathIgnorePatterns: ['/node_modules/', '<rootDir>/ios/', '<rootDir>/android/'],
   modulePathIgnorePatterns: ['<rootDir>/ios/', '<rootDir>/android/'],
+  // Untested source counts as 0%. .tsx is left out because this config has no transform for it.
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', 'plugins/*.js', 'app.config.ts', '!plugins/*.spec.ts', '!app.config.spec.ts'],
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
