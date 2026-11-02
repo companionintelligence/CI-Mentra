@@ -24,21 +24,10 @@ async function main(): Promise<void> {
   const { facadeRouter } = await import('./facade/index.ts');
   const { authRouter } = await import('./auth/routes.ts');
   const { companionRouter } = await import('./api/companion.ts');
-  const { MentraBridge } = await import('./bridge/mentra-bridge.ts');
-  const { createLocalBluetoothRuntimeInfo } = await import('./bluetooth/local-sdk.ts');
   const { ensureSchema } = await import('./store/postgres.ts');
 
   // Create tables on a bare Postgres (Hub installs have no initdb mount). Fail-open.
   await ensureSchema();
-
-  const localBluetoothRuntimeInfo =
-    config.runtime.mode === 'bluetooth-local'
-      ? createLocalBluetoothRuntimeInfo(
-          config.runtime.bluetooth.sdkVersion,
-          config.runtime.bluetooth.target,
-          config.runtime.bluetooth.packagePath
-        )
-      : null;
 
   // Start the OpenAI-compatible façade server
   const app = express();
@@ -69,7 +58,6 @@ async function main(): Promise<void> {
       status: 'ok',
       service: 'mentra-bridge',
       version: '1.0.0',
-      runtimeMode: config.runtime.mode,
       auth: {
         mode: config.auth.portal.enabled ? 'portal-oidc' : 'facade-key',
         portalIssuer: config.auth.portal.enabled ? config.auth.portal.issuer : undefined,
@@ -93,7 +81,6 @@ async function main(): Promise<void> {
         platform: config.memory.platform,
       },
       companionUi: { path: '/', devAnonymous: config.dev.allowAnonymous },
-      bluetooth: localBluetoothRuntimeInfo,
     });
   });
 
@@ -107,21 +94,6 @@ async function main(): Promise<void> {
       'OpenAI-compatible facade listening'
     );
   });
-
-  // Start Mentra cloud bridge unless runtime is configured for local Bluetooth SDK usage
-  if (localBluetoothRuntimeInfo) {
-    logger.info(localBluetoothRuntimeInfo, 'Bluetooth-local runtime selected');
-    logger.info(
-      { flow: localBluetoothRuntimeInfo.ftue.firstTimeFlow },
-      'FTUE flow loaded for selected headset target'
-    );
-  } else if (config.mentra.apiKey) {
-    const bridge = new MentraBridge();
-    await bridge.start();
-    logger.info({ port: config.mentra.port }, 'Mentra Bridge (MentraOS AppServer) started');
-  } else {
-    logger.warn('MENTRA_API_KEY not set, skipping Mentra Bridge startup');
-  }
 
   // Graceful shutdown
   process.on('SIGTERM', async () => {

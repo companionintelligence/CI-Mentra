@@ -4,7 +4,7 @@
 
 ## Why this is on hold
 
-CI-Mentra still depends on `@mentra/sdk ^2.1.29` (the cloud-server SDK). Per the notes recorded in the
+CI-Mentra depended on `@mentra/sdk ^2.1.29` (the cloud-server SDK) until the bridge was retired. Per the notes recorded in the
 workspace memory (`mentra_sdk_deprecation_migration`, 2026-09-16, from Mentra's own roadmap post), MentraOS 3.0
 shipped on 2026-08-03 and moved apps on-device (`@mentra/miniapp`); cloud-SDK apps no longer start sessions in
 the main app, and the Legacy sideload fallback ends in 2026-10. **I did not re-verify that against Mentra's
