@@ -5,6 +5,19 @@ upstream projects legally require us to reproduce. It is not a full dependency
 list — see [THIRD_PARTY.md](THIRD_PARTY.md) for that, and [CREDITS.md](CREDITS.md)
 for acknowledgements.
 
+<!-- hand-authored: do not regenerate this section -->
+## Adapted from Apache-2.0 code
+
+Parts of the phone app in [`mobile/`](mobile/) are adapted from the
+[Mentra Bluetooth SDK Starter Kit](https://github.com/Mentra-Community/Mentra-Bluetooth-SDK-Starter-Kit)
+React Native example, Copyright 2026 Mentra Labs, Inc., licensed under the
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). The license text is in
+[`mobile/LICENSE-Apache-2.0`](mobile/LICENSE-Apache-2.0). Each adapted file starts with a
+comment naming its source, and all of them were modified. The files are listed in
+[`mobile/README.md`](mobile/README.md#attribution). They stay under Apache-2.0; the rest of
+this repository is under [LICENSE.md](LICENSE.md).
+<!-- end hand-authored -->
+
 ## Copyleft and reciprocal-licence dependencies
 
 None. Every third-party dependency in this repository is under a permissive
