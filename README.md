@@ -22,6 +22,28 @@
 | **Inference and agents** | Use configured Hub inference and Hermes/OpenClaw endpoints. |
 | **Memory** | Send and retrieve data through the user-configured Companion Memory API. |
 | **Deployment modes** | Support hosted service and Bluetooth-local setup paths. |
+| **Phone app** | iOS and Android companion for Mentra Live, built on the Mentra Bluetooth SDK, in [`mobile/`](mobile/README.md). |
+
+## Mobile app (iOS and Android)
+
+The phone app for Mentra Live glasses lives in [`mobile/`](mobile/README.md). It is
+an Expo app built on the
+[Mentra Bluetooth SDK](https://docs.mentraglass.com/bluetooth-sdk/overview), which
+connects the phone straight to the glasses over Bluetooth. Version 1 scans for
+glasses, connects, shows device status and button or touch events, and sends text
+to glasses that have a display. It doesn't upload audio, photos or video.
+
+```bash
+cd mobile
+npm ci
+npx expo prebuild --platform ios      # or --platform android
+npx expo run:ios                      # needs Xcode and CocoaPods
+npx expo run:android                  # needs JDK 17 or newer and the Android SDK
+```
+
+Simulators can't scan for Bluetooth devices, so a real connection needs a physical
+phone and supported glasses. See [`mobile/README.md`](mobile/README.md) for
+permissions, signing and the release checklist.
 
 ## Runtime
 
@@ -54,6 +76,12 @@ Plain `deno test` therefore can't run these specs, so `deno task test`
 delegates to Jest (`npm test`), which is the supported way to run the suite.
 
 ## Companion Intelligence integration
+
+> **Retired path.** The hosted bridge below is built on the Mentra Cloud SDK
+> (`@mentra/sdk`). Mentra retired that app model with MentraOS 3.0 in August 2026,
+> so this bridge no longer reaches glasses. Its Companion Hub, Companion Memory and
+> sign-in integrations stay in the code, and the phone app in
+> [`mobile/`](mobile/README.md) is the path for glasses.
 
 CI-Mentra is a Device-layer bridge: it turns Mentra glasses voice input into an
 LLM response and speaks it back, and exposes an OpenAI-compatible façade
