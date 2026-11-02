@@ -141,3 +141,4 @@ vite.config.ts.timestamp-*
 # Cloudflare site build output + wrangler state
 site/dist/
 .wrangler/
+/data/companion-photos/
