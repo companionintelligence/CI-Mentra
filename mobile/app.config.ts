@@ -73,6 +73,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Companion',
   slug: 'companion-mentra',
+  // Redirect scheme for the CI-Portal sign-in (companion://oidc/callback). Same scheme as Companion Memory.
+  scheme: 'companion',
   version: '0.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
@@ -130,6 +132,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
+    'expo-secure-store',
+    'expo-web-browser',
     './plugins/withAndroid16KbPageSize',
     './plugins/withConnectedDeviceForegroundService',
     './plugins/withPodsDeploymentTarget',

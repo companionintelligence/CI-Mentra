@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import { config } from '../config.ts';
 import { getSession, SESSION_COOKIE } from '../auth/sessions.ts';
+import { verifyPortalToken } from '../auth/portal-token.ts';
 import type { AuthMethod } from './auth.ts';
 import pino from 'pino';
 
@@ -94,16 +95,16 @@ function isOwner(user: CompanionUser): boolean {
  * middleware because `GET /status` must report `authenticated: false` with a
  * 200 so the UI can render a login gate instead of an error.
  *
- * Order: OIDC login session → static facade key (service clients) → dev
+ * Order: OIDC login session → static facade key → CI-Portal bearer → dev
  * anonymous. Config is read with optional chaining so a partially-stubbed
  * config can never turn a missing field into a thrown 500.
  */
-export function resolveCompanionIdentity(req: Request): CompanionIdentity | null {
+export async function resolveCompanionIdentity(req: Request): Promise<CompanionIdentity | null> {
   // 1. Interactive OIDC login session (signed cookie set by /api/auth/callback).
   //    A session that isn't the appliance owner's is treated as no session at
   //    all: we fall through rather than return early, so a non-owner is never
-  //    *worse* off than a caller with no cookie — the facade-key and
-  //    dev-anonymous paths below are unchanged by ownership. With neither of
+  //    *worse* off than a caller with no cookie. The facade-key, bearer and
+  //    dev-anonymous paths below are unchanged by ownership. With none of
   //    those configured (the normal deployment) this yields null, so /status
   //    reports authenticated:false and the guard 401s.
   const sid = (req.signedCookies as Record<string, string> | undefined)?.[SESSION_COOKIE];
@@ -138,7 +139,31 @@ export function resolveCompanionIdentity(req: Request): CompanionIdentity | null
     };
   }
 
-  // 3. Local development without a login.
+  // 3. CI-Portal bearer. A first-party native client, such as the phone app,
+  //    signs in with CI-Portal and presents its access token. The token is
+  //    verified as a resource server (JWKS, iss, aud, exp), then held to the
+  //    same owner allowlist as a login, so any other valid Portal account
+  //    still gets nothing.
+  if (token && config.auth?.portal?.enabled) {
+    const portal = await verifyPortalToken(token);
+    if (portal?.subject) {
+      const user: CompanionUser = { sub: portal.subject, name: portal.name, email: portal.email };
+      if (isOwner(user)) {
+        return {
+          userId: portal.subject,
+          tenantId: portal.tenantId,
+          user,
+          authMethod: 'portal-oidc',
+        };
+      }
+      logger.warn(
+        { sub: portal.subject, email: portal.email, path: req.path },
+        'Denying CI-Portal bearer: not in the MENTRA_ALLOWED_USERS owner allowlist'
+      );
+    }
+  }
+
+  // 4. Local development without a login.
   if (config.dev?.allowAnonymous) {
     return {
       userId: 'dev',
@@ -153,7 +178,7 @@ export function resolveCompanionIdentity(req: Request): CompanionIdentity | null
 
 /** Attach the resolved identity to the request, or reject with a 401. */
 export async function requireCompanionAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const identity = resolveCompanionIdentity(req);
+  const identity = await resolveCompanionIdentity(req);
   if (!identity) {
     logger.debug({ ip: req.ip, path: req.path }, 'Unauthenticated companion request');
     res.status(401).json({

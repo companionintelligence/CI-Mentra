@@ -17,7 +17,6 @@ The frameworks and libraries that define how this repository is built.
 
 | | Project | Licence | What it does |
 | :-: | --- | --- | --- |
-|  | [`@mentra/sdk`](https://www.npmjs.com/package/@mentra/sdk) | not declared in package metadata | Build apps for MentraOS smartglasses. This SDK provides everything you need to create real-t |
 | <img src="https://github.com/axios.png?size=40" width="20" height="20" alt=""> | [`axios`](https://axios-http.com) | MIT | Promise based HTTP client for the browser and node.js |
 | <img src="https://github.com/expressjs.png?size=40" width="20" height="20" alt=""> | [`cookie-parser`](https://github.com/expressjs/cookie-parser#readme) | MIT | Parse HTTP request cookies |
 | <img src="https://github.com/motdotla.png?size=40" width="20" height="20" alt=""> | [`dotenv`](https://github.com/motdotla/dotenv#readme) | BSD-2-Clause | Loads environment variables from .env file |

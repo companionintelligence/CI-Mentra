@@ -25,9 +25,6 @@ function isTruthy(rawValue: string | undefined): boolean {
   return /^(1|true|yes|on)$/i.test((rawValue ?? '').trim());
 }
 
-const runtimeMode = process.env.MENTRA_RUNTIME_MODE === 'bluetooth-local' ? 'bluetooth-local' : 'cloud';
-const bluetoothTarget = process.env.MENTRA_BLUETOOTH_TARGET || 'mentra-live';
-
 /**
  * Ollama base URL, standardized on the CI-Hub inference convention while
  * remaining local-first by default. Resolution order (first non-empty wins):
@@ -69,12 +66,6 @@ const hubBackendBaseUrl = stripOpenAiSuffix(
 );
 
 export const config = {
-  mentra: {
-    packageName: process.env.MENTRA_PACKAGE_NAME || process.env.PACKAGE_NAME || 'com.companionintelligence.mentra-bridge',
-    apiKey: process.env.MENTRA_API_KEY || process.env.MENTRAOS_API_KEY || '',
-    port: parseInt(process.env.MENTRA_PORT || process.env.PORT || '7010'),
-    cloudApiUrl: normalizeBaseUrl(process.env.MENTRA_CLOUD_API_URL, 'https://api.mentra.glass', 'https'),
-  },
   facade: {
     port: parseInt(process.env.FACADE_PORT || '8080'),
     apiKey: process.env.FACADE_API_KEY || '',
@@ -211,6 +202,11 @@ export const config = {
     language: process.env.MENTRA_LANGUAGE || 'en-US',
     maxHistoryTurns: parseInt(process.env.MENTRA_MAX_HISTORY_TURNS || '8'),
   },
+  /** Glasses capture for the phone app. */
+  companion: {
+    /** Where photos the glasses upload are kept. Mount a volume at this path in Docker. */
+    photoDir: process.env.COMPANION_PHOTO_DIR || './data/companion-photos',
+  },
   /** Dev-only conveniences. Never enable in production. */
   dev: {
     // Lets the companion UI + BFF work without a login (local development only).
@@ -227,14 +223,5 @@ export const config = {
   rateLimit: {
     rpm: parseInt(process.env.RATE_LIMIT_RPM || '60'),
     tpm: parseInt(process.env.RATE_LIMIT_TPM || '100000'),
-  },
-  runtime: {
-    mode: runtimeMode,
-    bluetooth: {
-      sdkPackage: '@mentra/bluetooth-sdk',
-      sdkVersion: process.env.MENTRA_BLUETOOTH_SDK_VERSION || '0.1.6',
-      packagePath: process.env.MENTRA_BLUETOOTH_SDK_PACKAGE_PATH || '',
-      target: bluetoothTarget,
-    },
   },
 };

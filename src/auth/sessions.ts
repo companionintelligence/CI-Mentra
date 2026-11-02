@@ -7,7 +7,7 @@ export const SESSION_COOKIE = 'mentra_session';
  * Server-side session for an interactive OIDC login. Tokens are held here and
  * never exposed to the browser — the browser only carries the opaque session id
  * in the signed `mentra_session` cookie. Mirrors CI-Import-Tools' session
- * model, but in-memory (CI-Mentra is a single-instance bridge). Sessions do not
+ * model, but in-memory (CI-Mentra runs as a single instance). Sessions do not
  * survive a restart.
  */
 export interface SessionRecord {
