@@ -104,7 +104,12 @@ JWKS with `iss`/`aud`/`exp` checks (mirrors CI-Server's `PortalTokenService`).
 | `PORTAL_OIDC_ENABLED` | Accept Portal OIDC bearer tokens | `false` |
 | `PORTAL_OIDC_ISSUER` | Expected `iss` — the **bare origin**, no `/api/auth` | `https://hub.companionintelligence.com` |
 | `PORTAL_OIDC_JWKS_URI` | Portal JWKS endpoint | `<origin>/api/auth/jwks` |
-| `PORTAL_OIDC_AUDIENCE` | Comma-separated allowlist of accepted `aud` (client ids) | `ci-mentra,ci-import-tools,ci-server,ci-hub` |
+| `PORTAL_OIDC_AUDIENCE` | Comma-separated allowlist of accepted `aud` (client ids) | `ci-mentra` |
+
+A Portal token's `aud` is the client it was issued to, so by default CI-Mentra accepts
+only tokens issued to its own client, `ci-mentra`. A token Portal issued to another app,
+such as a Hub or a Companion Memory, belongs to that app. List another client id only
+for a client that is meant to call this appliance. An empty value means the default.
 
 **B. Interactive login — Authorization Code + PKCE (like CI-Import-Tools).** Set
 `MENTRA_OIDC_ENABLED=true` to expose a browser sign-in flow under `/api/auth`:
@@ -130,11 +135,11 @@ the signed `mentra_session` cookie, which the façade also accepts as a credenti
 | `MENTRA_OIDC_REDIRECT_URI` | Override; else `${proto}://${host}/api/auth/callback` | _(derived)_ |
 | `MENTRA_SESSION_SECRET` | Signs session/tx cookies (set in prod) | _(random per boot)_ |
 
-> A dedicated `ci-mentra` client should be registered in CI-Portal (its
-> `/api/auth/oauth2/register` endpoint exists). Until then, set
-> `MENTRA_OIDC_CLIENT_ID=ci-import-tools` — a registered public client that
-> allows localhost redirects — to run the flow. `GET /health` reports the active
-> auth mode and whether interactive login is enabled.
+> CI-Portal registers `ci-mentra` as a public PKCE client, and returns a sign-in
+> only to some addresses: `localhost`, a private network address or `.local` name,
+> and a Hub's `*.ts.net` name when the Hub is paired to an organization you belong
+> to. Sign-in from an app's public domain address on a Hub does not work yet.
+> `GET /health` reports the active auth mode and whether interactive login is enabled.
 
 The static `FACADE_API_KEY` remains a service-client fallback in all cases.
 
@@ -298,7 +303,7 @@ the façade (OIDC session cookie, Portal bearer, or `FACADE_API_KEY`).
 ### Dev-only: anonymous access
 
 `MENTRA_DEV_ALLOW_ANONYMOUS=true` lets the companion UI and BFF work with no login —
-useful for iterating on the UI before a `ci-mentra` client is registered in CI-Portal.
+useful for iterating on the UI without signing in.
 
 > ⚠️ **Never enable this in production.** It exposes `/api/companion` — and therefore
 > the wearer's memory — to any unauthenticated caller that can reach the port.

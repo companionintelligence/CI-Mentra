@@ -55,10 +55,18 @@ export async function verifyPortalToken(token: string): Promise<PortalIdentity |
   const portal = config.auth?.portal;
   if (!portal?.enabled || !token) return null;
 
+  // jwtVerify skips the audience check when it is given no audience, so an empty
+  // list refuses every token instead. config.ts never produces one (an empty
+  // PORTAL_OIDC_AUDIENCE means `ci-mentra`); this covers a config built another way.
+  if (!portal.audience || portal.audience.length === 0) {
+    logger.warn('Refusing Portal token: no accepted audience is configured');
+    return null;
+  }
+
   try {
     const { payload } = await jwtVerify(token, getJwks(portal.jwksUri), {
       issuer: portal.issuer,
-      audience: portal.audience && portal.audience.length > 0 ? portal.audience : undefined,
+      audience: portal.audience,
     });
 
     const email = typeof payload.email === 'string' ? payload.email : undefined;

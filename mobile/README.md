@@ -190,11 +190,11 @@ asks the glasses for a photo. The SDK sends it through the phone to the applianc
 
 Before sign-in works, these must be in place:
 
-- **CI-Portal** lists `ci-mentra` as a public client. Add `{ clientId: 'ci-mentra', name: 'Companion for Mentra' }`
-  to `PUBLIC_CLIENTS` in `apps/hono-app/src/domains/core/services/oidcClients.ts`. The redirect
-  `companion://oidc/callback` is already on Portal's allowlist for native apps.
+- **CI-Portal** lists `ci-mentra` as a public client (`PUBLIC_CLIENTS` in
+  `apps/hono-app/src/domains/core/services/oidcClients.ts`). The redirect `companion://oidc/callback`
+  is on Portal's allowlist for native apps.
 - **The appliance** runs with `PORTAL_OIDC_ENABLED=true`, `MENTRA_ALLOWED_USERS` set to the owner's email,
-  `PORTAL_OIDC_AUDIENCE` including `ci-mentra` (its default), and memory on (`MENTRA_MEMORY_ENABLED=true`
+  `PORTAL_OIDC_AUDIENCE` left at its default (`ci-mentra`), and memory on (`MENTRA_MEMORY_ENABLED=true`
   with a memory key).
 - **An https address** for the appliance, such as a Tailscale HTTPS name or a Hub tunnel. iOS refuses
   plain http except to localhost.

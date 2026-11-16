@@ -12,7 +12,8 @@ const mockConfig = {
       enabled: true,
       issuer: 'https://hub.ci.computer/api/auth',
       jwksUri: 'https://hub.ci.computer/api/auth/jwks',
-      audience: ['ci-mentra', 'ci-server'],
+      // The default config.ts produces when PORTAL_OIDC_AUDIENCE is unset.
+      audience: ['ci-mentra'] as string[],
     },
   },
 };
@@ -51,6 +52,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockConfig.auth.portal.enabled = true;
+  mockConfig.auth.portal.audience = ['ci-mentra'];
 });
 
 describe('verifyPortalToken', () => {
@@ -89,6 +91,28 @@ describe('verifyPortalToken', () => {
   it('rejects a token whose audience is not in the allowlist', async () => {
     const token = await mintToken({ audience: 'some-other-client' });
     expect(await verifyPortalToken(token)).toBeNull();
+  });
+
+  // Portal signs every client's id_token with the same key, so only `aud` tells a
+  // token issued to this app apart from one issued to another first-party app.
+  it.each(['ci-hub', 'ci-server', 'ci-import-tools'])(
+    'rejects a token Portal issued to another client (%s) under the default audience',
+    async (otherClient) => {
+      const token = await mintToken({ audience: otherClient, email: 'liam@ci.com' });
+      expect(await verifyPortalToken(token)).toBeNull();
+    }
+  );
+
+  it('accepts another client only when the operator lists it', async () => {
+    mockConfig.auth.portal.audience = ['ci-mentra', 'ci-server'];
+    const identity = await verifyPortalToken(await mintToken({ audience: 'ci-server' }));
+    expect(identity?.clientId).toBe('ci-server');
+  });
+
+  it('refuses every token when no audience is configured, rather than skipping the check', async () => {
+    mockConfig.auth.portal.audience = [];
+    expect(await verifyPortalToken(await mintToken())).toBeNull();
+    expect(await verifyPortalToken(await mintToken({ audience: 'ci-hub' }))).toBeNull();
   });
 
   it('rejects an expired token', async () => {

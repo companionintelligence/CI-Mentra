@@ -82,6 +82,21 @@ describe('config', () => {
     expect(config.hub.url).toBe('http://ci-hub:5002');
   });
 
+  it('accepts only ci-mentra tokens when PORTAL_OIDC_AUDIENCE is unset', async () => {
+    delete process.env.PORTAL_OIDC_AUDIENCE;
+    const { config } = await import('../config.ts');
+    expect(config.auth.portal.audience).toEqual(['ci-mentra']);
+  });
+
+  it.each(['', '   ', ',', ' , ,'])(
+    'treats PORTAL_OIDC_AUDIENCE=%j as unset, never as an empty list that skips the audience check',
+    async (raw) => {
+      process.env.PORTAL_OIDC_AUDIENCE = raw;
+      const { config } = await import('../config.ts');
+      expect(config.auth.portal.audience).toEqual(['ci-mentra']);
+    }
+  );
+
   it('enables Portal OIDC when PORTAL_OIDC_ENABLED is truthy', async () => {
     process.env.PORTAL_OIDC_ENABLED = 'true';
     const { config } = await import('../config.ts');
@@ -101,12 +116,12 @@ describe('config', () => {
     expect(config.auth.oidc.scopes).toBe('openid profile email offline_access');
   });
 
-  it('supports overriding the OIDC login client id (e.g. reuse ci-import-tools)', async () => {
+  it('supports overriding the OIDC login client id', async () => {
     process.env.MENTRA_OIDC_ENABLED = 'true';
-    process.env.MENTRA_OIDC_CLIENT_ID = 'ci-import-tools';
+    process.env.MENTRA_OIDC_CLIENT_ID = 'ci-mentra-staging';
     const { config } = await import('../config.ts');
     expect(config.auth.oidc.enabled).toBe(true);
-    expect(config.auth.oidc.clientId).toBe('ci-import-tools');
+    expect(config.auth.oidc.clientId).toBe('ci-mentra-staging');
   });
 
   describe('owner allowlist (MENTRA_ALLOWED_USERS)', () => {
