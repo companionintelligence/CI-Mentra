@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 // Controllable config + portal verifier so we exercise middleware branching
 // without touching jose or the network.
 const mockConfig = {
-  auth: { portal: { enabled: false } },
+  auth: { portal: { enabled: false }, owners: [] as string[] },
   facade: { apiKey: '' },
 };
 
@@ -42,6 +42,7 @@ function makeReqRes(authHeader?: string, signedCookies?: Record<string, string>)
 
 beforeEach(() => {
   mockConfig.auth.portal.enabled = false;
+  mockConfig.auth.owners = [];
   mockConfig.facade.apiKey = '';
   mockedVerify.mockReset();
   clearAllSessions();
@@ -148,6 +149,105 @@ describe('requireAuth', () => {
 
       expect(state.statusCode).toBe(401);
       expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * The facade runs the appliance's models, so it serves the same owners as the
+   * companion API. A Portal sign-in or token only proves the caller has a Portal
+   * account, not that this appliance is theirs.
+   */
+  describe('owner allowlist (MENTRA_ALLOWED_USERS)', () => {
+    const owner = { sub: 'user-owner', email: 'owner@example.com', name: 'Owner' };
+    const stranger = { sub: 'user-stranger', email: 'stranger@example.com', name: 'Someone Else' };
+
+    function sessionCookieFor(user: { sub: string; email?: string; name?: string }) {
+      const session = createSession(user, { access_token: 'a', id_token: 'i' }, 60_000);
+      return { mentra_session: session.id };
+    }
+
+    function portalIdentityFor(user: { sub: string; email?: string }) {
+      return { subject: user.sub, email: user.email, tenantId: user.email || user.sub, clientId: 'ci-mentra', claims: {} };
+    }
+
+    beforeEach(() => {
+      mockConfig.auth.owners = ['owner@example.com'];
+    });
+
+    it("accepts the owner's sign-in session", async () => {
+      const { req, res, next } = makeReqRes(undefined, sessionCookieFor(owner));
+      await requireAuth(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect((req as AuthenticatedRequest).authMethod).toBe('oidc-session');
+      expect((req as AuthenticatedRequest).userId).toBe('user-owner');
+    });
+
+    it('matches the owner on sub when the session has no email', async () => {
+      mockConfig.auth.owners = ['user-owner'];
+
+      const { req, res, next } = makeReqRes(undefined, sessionCookieFor({ sub: 'user-owner', name: 'Owner' }));
+      await requireAuth(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('refuses the sign-in session of a Portal user who is not an owner', async () => {
+      const { req, res, next, state } = makeReqRes(undefined, sessionCookieFor(stranger));
+      await requireAuth(req, res, next);
+
+      expect(state.statusCode).toBe(401);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("still accepts the static facade key alongside a non-owner's session", async () => {
+      mockConfig.facade.apiKey = 'service-key';
+
+      const { req, res, next } = makeReqRes('Bearer service-key', sessionCookieFor(stranger));
+      await requireAuth(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect((req as AuthenticatedRequest).authMethod).toBe('facade-key');
+    });
+
+    describe('with Portal bearer tokens on', () => {
+      beforeEach(() => {
+        mockConfig.auth.portal.enabled = true;
+      });
+
+      it("accepts the owner's Portal token", async () => {
+        mockedVerify.mockResolvedValue(portalIdentityFor(owner));
+
+        const { req, res, next } = makeReqRes('Bearer owner.portal.jwt');
+        await requireAuth(req, res, next);
+
+        expect(next).toHaveBeenCalled();
+        expect((req as AuthenticatedRequest).authMethod).toBe('portal-oidc');
+      });
+
+      it('refuses the Portal token of a user who is not an owner', async () => {
+        mockedVerify.mockResolvedValue(portalIdentityFor(stranger));
+
+        const { req, res, next, state } = makeReqRes('Bearer stranger.portal.jwt');
+        await requireAuth(req, res, next);
+
+        expect(state.statusCode).toBe(401);
+        expect(next).not.toHaveBeenCalled();
+      });
+    });
+
+    it('serves every Portal user when the list is empty (the default)', async () => {
+      mockConfig.auth.owners = [];
+      mockConfig.auth.portal.enabled = true;
+      mockedVerify.mockResolvedValue(portalIdentityFor(stranger));
+
+      const session = makeReqRes(undefined, sessionCookieFor(stranger));
+      await requireAuth(session.req, session.res, session.next);
+      expect(session.next).toHaveBeenCalled();
+
+      const bearer = makeReqRes('Bearer stranger.portal.jwt');
+      await requireAuth(bearer.req, bearer.res, bearer.next);
+      expect(bearer.next).toHaveBeenCalled();
     });
   });
 });

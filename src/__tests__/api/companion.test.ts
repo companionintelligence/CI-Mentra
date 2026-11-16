@@ -57,7 +57,7 @@ import { answer } from '../../agent/answer-service.ts';
 import { recall, writeMemory, getContext } from '../../memory/companion-memory.ts';
 import { resetSessions, appendExchange } from '../../agent/session-history.ts';
 import { createSession, clearAllSessions, SESSION_COOKIE } from '../../auth/sessions.ts';
-import { resetOwnerWarning } from '../../middleware/companion-auth.ts';
+import { resetOwnerWarning } from '../../auth/owners.ts';
 import { applyFacadeCors } from '../../http/cors.ts';
 
 const mockedAnswer = answer as jest.MockedFunction<typeof answer>;
