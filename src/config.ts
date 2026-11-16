@@ -25,6 +25,23 @@ function isTruthy(rawValue: string | undefined): boolean {
   return /^(1|true|yes|on)$/i.test((rawValue ?? '').trim());
 }
 
+/** The CI-Portal client this app signs in as, and the only `aud` accepted by default. */
+const DEFAULT_PORTAL_AUDIENCE = 'ci-mentra';
+
+/**
+ * Accepted `aud` values for a presented CI-Portal token, from a comma-separated
+ * list. A list with no entries (unset, empty, or only commas and spaces) means
+ * the default rather than an empty list, because an empty list would skip the
+ * audience check.
+ */
+function parseAudience(rawValue: string | undefined): string[] {
+  const values = (rawValue ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return values.length > 0 ? values : [DEFAULT_PORTAL_AUDIENCE];
+}
+
 /**
  * Ollama base URL, standardized on the CI-Hub inference convention while
  * remaining local-first by default. Resolution order (first non-empty wins):
@@ -84,11 +101,11 @@ export const config = {
      * Owner allowlist — WHO may use this appliance, as opposed to WHO CAN LOG IN.
      *
      * A valid CI-Portal login only proves the caller has *a* Portal account; it
-     * says nothing about whether they own THIS pair of glasses. `portal.audience`
-     * accepts several first-party client ids, so without this list any Portal
-     * user who reaches the box gets full read/write on the wearer's private
-     * memory. Entries are matched case-insensitively against the session user's
-     * `email` or `sub`.
+     * says nothing about whether they own THIS pair of glasses. Any Portal user
+     * can sign in to the public `ci-mentra` client, so without this list any
+     * Portal user who reaches the box gets full read/write on the wearer's
+     * private memory. Entries are matched case-insensitively against the session
+     * user's `email` or `sub`.
      *
      * The companion API and the OpenAI facade both check it (`auth/owners.ts`).
      * Empty (the default): every Portal user who can sign in is served, and a
@@ -104,22 +121,19 @@ export const config = {
       // `/api/auth` but signs the `iss` as the BARE ORIGIN — do not add /api/auth.
       issuer: process.env.PORTAL_OIDC_ISSUER || 'https://hub.companionintelligence.com',
       jwksUri: normalizeBaseUrl(process.env.PORTAL_OIDC_JWKS_URI, 'https://hub.companionintelligence.com/api/auth/jwks', 'https'),
-      // aud on a Portal token equals the client_id it was minted for. Accept a
-      // comma-separated allowlist of first-party clients (empty = skip aud check).
-      audience: (process.env.PORTAL_OIDC_AUDIENCE || 'ci-mentra,ci-import-tools,ci-server,ci-hub')
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean),
+      // `aud` on a Portal token is the client it was issued to. Only this app's
+      // own client is accepted by default: a token Portal issued to another app,
+      // such as a Hub or a Companion Memory, belongs to that app. List another
+      // client id only for a client that is meant to call this appliance.
+      audience: parseAudience(process.env.PORTAL_OIDC_AUDIENCE),
     },
     oidc: {
       enabled: isTruthy(process.env.MENTRA_OIDC_ENABLED),
       // Discovery base URL (includes /api/auth); discovery appends
       // /.well-known/openid-configuration and reads all endpoints from it.
       issuer: normalizeBaseUrl(process.env.MENTRA_OIDC_ISSUER, 'https://hub.companionintelligence.com/api/auth', 'https'),
-      // Public PKCE client id registered in CI-Portal. `ci-import-tools` is a
-      // registered client that allows localhost redirects (usable for testing
-      // until a dedicated `ci-mentra` client is registered).
-      clientId: process.env.MENTRA_OIDC_CLIENT_ID || 'ci-mentra',
+      // Public PKCE client id. CI-Portal registers `ci-mentra` for this app.
+      clientId: process.env.MENTRA_OIDC_CLIENT_ID || DEFAULT_PORTAL_AUDIENCE,
       clientSecret: process.env.MENTRA_OIDC_CLIENT_SECRET || '',
       scopes: process.env.MENTRA_OIDC_SCOPES || 'openid profile email offline_access',
       // Optional explicit redirect URI; otherwise derived from the request as

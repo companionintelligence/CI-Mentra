@@ -370,9 +370,9 @@ describe('session isolation', () => {
 });
 
 /**
- * Authentication is not authorization. PORTAL_OIDC_AUDIENCE accepts several
- * first-party client ids, so a valid Portal login only proves the caller has an
- * account somewhere in the org — not that they own THIS wearer's glasses.
+ * Authentication is not authorization. Any Portal user can sign in to the public
+ * `ci-mentra` client, so a valid Portal login only proves the caller has a Portal
+ * account — not that they own THIS wearer's glasses.
  * `config.auth.owners` (MENTRA_ALLOWED_USERS) is the ownership check.
  */
 describe('owner allowlist', () => {
