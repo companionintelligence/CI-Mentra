@@ -138,6 +138,16 @@ the signed `mentra_session` cookie, which the façade also accepts as a credenti
 
 The static `FACADE_API_KEY` remains a service-client fallback in all cases.
 
+**Owners.** A Portal sign-in or token only shows that the caller has a Portal
+account. `MENTRA_ALLOWED_USERS` lists the people this appliance serves: their
+emails or Portal user ids (`sub`), comma-separated, matched without regard to
+case. A sign-in session or Portal token for anyone else is not accepted, on the
+façade (`/v1`) or the companion API. `FACADE_API_KEY` is not affected.
+
+| Var | Meaning | Default |
+|-----|---------|---------|
+| `MENTRA_ALLOWED_USERS` | Emails or Portal `sub` values this appliance serves | _(empty: every Portal user who can sign in, with a warning logged once)_ |
+
 ### 2. Standardized Ollama connection (CI-Hub instance)
 
 The Ollama base URL resolves in this order: `OLLAMA_BASE_URL` → `OLLAMA_HOST` →

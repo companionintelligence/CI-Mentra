@@ -90,8 +90,9 @@ export const config = {
      * memory. Entries are matched case-insensitively against the session user's
      * `email` or `sub`.
      *
-     * Empty (the default) = single-user appliance: the first Portal user to sign
-     * in is served, and `companion-auth` warns once that this should be set.
+     * The companion API and the OpenAI facade both check it (`auth/owners.ts`).
+     * Empty (the default): every Portal user who can sign in is served, and a
+     * warning is logged once that this should be set.
      */
     owners: (process.env.MENTRA_ALLOWED_USERS || '')
       .split(',')
